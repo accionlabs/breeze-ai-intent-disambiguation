@@ -1,46 +1,119 @@
-# Getting Started with Create React App
+# Nexus Semantic Engineering Evolution - Interactive Infographic
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An interactive visualization demonstrating the evolution of Cision's products from siloed systems to a unified intelligence platform through semantic engineering.
 
-## Available Scripts
+## Overview
 
-In the project directory, you can run:
+This React application visualizes the 5-stage journey of semantic engineering:
 
-### `npm start`
+1. **Stage 1**: Existing Products with Siloed Functionality
+2. **Stage 2**: Individual Functional Graphs Extracted  
+3. **Stage 3**: Rationalization of Overlapping Functions
+4. **Stage 4**: Unified Virtual Product (NEXUS)
+5. **Stage 5**: Cross-Product New Outcomes
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Features
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- **Interactive Intent Mapping**: Click on user intents to see how they map to product outcomes
+- **Visual Evolution**: See how functions evolve from hidden → visible → rationalized → unified → composite
+- **Error Handling**: Ambiguous intents show error messages
+- **Responsive Design**: Centered layout that adapts to different screen sizes
+- **Configurable**: Separate configuration files for layout, content, and mappings
 
-### `npm test`
+## Tech Stack
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- React with TypeScript
+- SVG for visualizations
+- CSS-in-JS for styling
 
-### `npm run build`
+## Project Structure
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+src/
+├── components/
+│   ├── StageVisualization.tsx  # Main visualization component
+│   ├── StageControls.tsx       # Stage selection controls
+│   ├── IntentBar.tsx           # Intent selection bar
+│   ├── ProductBox.tsx          # Product box component
+│   ├── FunctionNode.tsx        # Function/outcome node
+│   └── ConnectionLine.tsx      # Bezier curve connections
+├── config/
+│   ├── layout.ts               # Layout and spacing configuration
+│   ├── content.ts              # Products, outcomes, and branding
+│   └── intentMappings.ts       # Intent-to-outcome mappings
+├── types/
+│   └── index.ts                # TypeScript interfaces
+└── data/
+    └── config.ts               # Combined configuration
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Configuration
 
-### `npm run eject`
+### Layout (`src/config/layout.ts`)
+- Container dimensions
+- Product positioning
+- Function grid spacing
+- Z-index layers
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+### Content (`src/config/content.ts`)
+- Product definitions and functions
+- Composite outcomes
+- Intent definitions
+- NEXUS branding
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Intent Mappings (`src/config/intentMappings.ts`)
+- Stage-specific intent-to-outcome mappings
+- Error messages for ambiguous intents
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## Installation
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```bash
+# Clone the repository
+git clone [your-repo-url]
 
-## Learn More
+# Install dependencies
+npm install
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# Start development server
+npm start
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Usage
+
+1. Use the **Evolution Timeline** on the left to navigate through stages
+2. Click on **user intents** at the top to see outcome mappings
+3. Observe how intent ambiguity resolves as stages progress
+4. See composite outcomes emerge in Stage 5
+
+## Key Concepts
+
+### Products
+- **BCR (Brandwatch)**: Social monitoring and sentiment analysis
+- **SMM**: Social media management
+- **Cision One**: Media monitoring and PR
+- **PR Newswire**: Press release distribution
+- **Trendkite**: Analytics and attribution
+
+### Evolution Highlights
+- **Stage 1-2**: Functions become visible, revealing overlaps
+- **Stage 3**: Overlapping functions are rationalized
+- **Stage 4**: NEXUS unifies all products
+- **Stage 5**: Composite outcomes enable complex scenarios
+
+## Future Enhancements
+
+- Animation transitions between stages
+- More complex intent scenarios
+- Performance metrics visualization
+- Export functionality
+- Additional composite outcomes
+
+## License
+
+Proprietary - Accion Labs / Cision
+
+## Contributors
+
+- Developed with Claude Code assistance
+- Accion Labs Semantic Engineering Team
