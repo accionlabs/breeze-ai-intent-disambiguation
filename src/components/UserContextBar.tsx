@@ -1,18 +1,21 @@
 import React from 'react';
 import { UserContext } from '../config/functionalHierarchy';
+import { RecentAction } from '../sections/IntentDisambiguationSection';
 
 interface UserContextBarProps {
   context: UserContext;
   availableContexts: Record<string, UserContext>;
   onContextChange: (contextId: string) => void;
   currentContextId: string;
+  recentActions?: RecentAction[];
 }
 
 const UserContextBar: React.FC<UserContextBarProps> = ({ 
   context, 
   availableContexts, 
   onContextChange,
-  currentContextId 
+  currentContextId,
+  recentActions = [] 
 }) => {
   const formatTimestamp = (timestamp: number) => {
     const minutes = Math.floor((Date.now() - timestamp) / 60000);
@@ -27,7 +30,9 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
       smm: '#1976d2',
       cision: '#ef6c00',
       prn: '#7b1fa2',
-      trendkite: '#00897b'
+      trendkite: '#00897b',
+      brandwatch: '#e91e63',
+      'n/a': '#999'
     };
     return colors[product] || '#666';
   };
@@ -92,6 +97,28 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
               📊 {context.patterns.workflowStage}
             </div>
           )}
+
+          {/* Domain Focus Tags - moved to top row */}
+          {context.patterns.domainFocus && context.patterns.domainFocus.length > 0 && (
+            <div style={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}>
+              <span style={{ fontSize: 10, color: '#999' }}>FOCUS:</span>
+              {context.patterns.domainFocus.map(domain => (
+                <span key={domain} style={{
+                  padding: '2px 6px',
+                  background: '#f0f0f0',
+                  borderRadius: 3,
+                  fontSize: 10,
+                  color: '#666'
+                }}>
+                  {domain}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Product Preferences */}
@@ -117,7 +144,7 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
       </div>
 
       {/* Recent History Timeline */}
-      {context.history.length > 0 && (
+      {(recentActions.length > 0 || context.history.length > 0) && (
         <div style={{ 
           marginTop: 12,
           paddingTop: 12,
@@ -127,39 +154,94 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
             RECENT ACTIONS:
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {context.history.slice(-5).map((item, index) => (
-              <React.Fragment key={index}>
-                <div style={{
-                  padding: '4px 10px',
-                  background: 'white',
-                  border: `1px solid ${getProductColor(item.product)}`,
-                  borderRadius: 6,
-                  fontSize: 11,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  minWidth: 80
-                }}>
-                  <div style={{ 
-                    color: getProductColor(item.product),
-                    fontWeight: 'bold',
-                    marginBottom: 2
+            {recentActions.length > 0 ? (
+              // Show dynamic recent actions - newest on the right
+              recentActions.slice(0, 5).reverse().map((action, index, arr) => {
+                const timeAgo = Math.floor((Date.now() - action.timestamp.getTime()) / 1000);
+                const timeStr = timeAgo < 60 ? `${timeAgo}s ago` : 
+                               timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :
+                               `${Math.floor(timeAgo / 3600)}h ago`;
+                
+                // Get product color
+                const productColor = getProductColor(action.product.toLowerCase());
+                
+                return (
+                  <React.Fragment key={action.id}>
+                    <div style={{
+                      padding: '4px 10px',
+                      background: 'white',
+                      border: `1px solid ${productColor}`,
+                      borderRadius: 6,
+                      fontSize: 11,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minWidth: 80
+                    }}>
+                      <div style={{ 
+                        color: productColor,
+                        fontWeight: 'bold',
+                        marginBottom: 2
+                      }}>
+                        {action.product}
+                      </div>
+                      <div style={{ 
+                        color: '#666', 
+                        fontSize: 10,
+                        textAlign: 'center',
+                        maxWidth: 100,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {action.matchedNode}
+                      </div>
+                      <div style={{ color: '#999', fontSize: 9, marginTop: 2 }}>
+                        {timeStr}
+                      </div>
+                    </div>
+                    {index < arr.length - 1 && (
+                      <div style={{ color: '#ccc', fontSize: 16 }}>→</div>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            ) : (
+              // Fallback to static history if no dynamic actions
+              context.history.slice(-5).map((item, index) => (
+                <React.Fragment key={index}>
+                  <div style={{
+                    padding: '4px 10px',
+                    background: 'white',
+                    border: `1px solid ${getProductColor(item.product)}`,
+                    borderRadius: 6,
+                    fontSize: 11,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minWidth: 80
                   }}>
-                    {item.product.toUpperCase()}
+                    <div style={{ 
+                      color: getProductColor(item.product),
+                      fontWeight: 'bold',
+                      marginBottom: 2
+                    }}>
+                      {item.product.toUpperCase()}
+                    </div>
+                    <div style={{ color: '#666', fontSize: 10 }}>
+                      {item.action}
+                    </div>
+                    <div style={{ color: '#999', fontSize: 9, marginTop: 2 }}>
+                      {formatTimestamp(item.timestamp)}
+                    </div>
                   </div>
-                  <div style={{ color: '#666', fontSize: 10 }}>
-                    {item.action}
-                  </div>
-                  <div style={{ color: '#999', fontSize: 9, marginTop: 2 }}>
-                    {formatTimestamp(item.timestamp)}
-                  </div>
-                </div>
-                {index < context.history.length - 1 && (
-                  <div style={{ color: '#ccc', fontSize: 16 }}>→</div>
-                )}
-              </React.Fragment>
-            ))}
-            {context.history.length === 0 && (
+                  {index < context.history.length - 1 && (
+                    <div style={{ color: '#ccc', fontSize: 16 }}>→</div>
+                  )}
+                </React.Fragment>
+              ))
+            )}
+            {recentActions.length === 0 && context.history.length === 0 && (
               <div style={{ 
                 color: '#999', 
                 fontSize: 11, 
@@ -172,28 +254,6 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
         </div>
       )}
 
-      {/* Domain Focus Tags */}
-      {context.patterns.domainFocus && context.patterns.domainFocus.length > 0 && (
-        <div style={{ 
-          marginTop: 10,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}>
-          <span style={{ fontSize: 10, color: '#999' }}>FOCUS:</span>
-          {context.patterns.domainFocus.map(domain => (
-            <span key={domain} style={{
-              padding: '2px 6px',
-              background: '#f0f0f0',
-              borderRadius: 3,
-              fontSize: 10,
-              color: '#666'
-            }}>
-              {domain}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

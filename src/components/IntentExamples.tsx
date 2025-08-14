@@ -1,17 +1,21 @@
 import React from 'react';
 import { UserIntent, LEVEL_COLORS } from '../config/functionalHierarchy';
+import { RecentAction } from '../sections/IntentDisambiguationSection';
 
 interface IntentExamplesProps {
   intents: UserIntent[];
   selectedIntent?: string;
   onIntentSelect: (intentId: string) => void;
+  recentActions?: RecentAction[];
 }
 
 const IntentExamples: React.FC<IntentExamplesProps> = ({ 
   intents, 
   selectedIntent, 
-  onIntentSelect 
+  onIntentSelect,
+  recentActions = [] 
 }) => {
+  console.log('IntentExamples recentActions:', recentActions); // Debug log
   const getLevelIcon = (level: string) => {
     const icons = {
       outcome: '🎯',
@@ -147,25 +151,82 @@ const IntentExamples: React.FC<IntentExamplesProps> = ({
         paddingTop: 15,
         borderTop: '1px solid #e0e0e0',
         fontSize: 11,
-        color: '#999'
+        color: '#666'
       }}>
-        <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Legend:</div>
-        {Object.entries(LEVEL_COLORS).map(([level, color]) => (
-          <div key={level} style={{ 
-            marginBottom: 4,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6
+        <div style={{ 
+          marginBottom: 8, 
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <span>Recent Actions</span>
+          {recentActions.length > 0 && (
+            <span style={{ 
+              fontSize: 9, 
+              color: '#999',
+              fontWeight: 'normal'
+            }}>
+              {recentActions.length} recorded
+            </span>
+          )}
+        </div>
+        
+        {recentActions.length === 0 ? (
+          <div style={{ 
+            color: '#999', 
+            fontStyle: 'italic',
+            padding: '8px 0'
           }}>
-            <div style={{
-              width: 12,
-              height: 12,
-              borderRadius: 2,
-              background: color
-            }} />
-            <span style={{ textTransform: 'capitalize' }}>{level}</span>
+            No actions yet. Select an intent above to see how different personas resolve it.
           </div>
-        ))}
+        ) : (
+          <div style={{ 
+            maxHeight: 150,
+            overflowY: 'auto'
+          }}>
+            {recentActions.slice(0, 5).map((action) => {
+              const timeAgo = Math.floor((Date.now() - action.timestamp.getTime()) / 1000);
+              const timeStr = timeAgo < 60 ? `${timeAgo}s ago` : 
+                             timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :
+                             `${Math.floor(timeAgo / 3600)}h ago`;
+              
+              return (
+                <div key={action.id} style={{
+                  marginBottom: 8,
+                  padding: '6px 8px',
+                  background: action.success ? '#f0f9ff' : '#fff0f0',
+                  border: `1px solid ${action.success ? '#90cdf4' : '#fca5a5'}`,
+                  borderRadius: 6,
+                  fontSize: 10
+                }}>
+                  <div style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    marginBottom: 2
+                  }}>
+                    <span style={{ 
+                      fontWeight: 'bold',
+                      color: action.success ? '#1e40af' : '#dc2626'
+                    }}>
+                      {action.persona}
+                    </span>
+                    <span style={{ color: '#999' }}>•</span>
+                    <span style={{ color: '#999' }}>{timeStr}</span>
+                  </div>
+                  <div style={{ 
+                    fontSize: 9,
+                    color: '#666',
+                    marginTop: 2
+                  }}>
+                    "{action.intent}" → {action.outcome}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

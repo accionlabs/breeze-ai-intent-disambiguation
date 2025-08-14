@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import UserContextBar from '../components/UserContextBar';
 import IntentExamples from '../components/IntentExamples';
 import HierarchyVisualization from '../components/HierarchyVisualization';
@@ -11,10 +11,23 @@ import {
   UserContext
 } from '../config/functionalHierarchy';
 
+export interface RecentAction {
+  id: string;
+  persona: string;
+  intent: string;
+  product: string;
+  outcome: string;
+  matchedNode: string;
+  timestamp: Date;
+  success: boolean;
+}
+
 const IntentDisambiguationSection: React.FC = () => {
   const [selectedIntent, setSelectedIntent] = useState<string | undefined>();
   const [currentContextId, setCurrentContextId] = useState<string>('marketing-manager');
   const [showContext, setShowContext] = useState<boolean>(true);
+  // Store recent actions per persona
+  const [recentActionsByPersona, setRecentActionsByPersona] = useState<Record<string, RecentAction[]>>({});
 
   const currentContext = SAMPLE_CONTEXTS[currentContextId];
 
@@ -35,6 +48,97 @@ const IntentDisambiguationSection: React.FC = () => {
   }, [selectedIntent, currentContext]);
 
   const selectedIntentData = USER_INTENTS.find(i => i.id === selectedIntent);
+
+  // Track recent action when intent is selected
+  useEffect(() => {
+    if (selectedIntent && contextualResolution) {
+      const intent = USER_INTENTS.find(i => i.id === selectedIntent);
+      if (intent) {
+        // Get the outcome and product from the resolution
+        let outcome = 'No specific outcome';
+        let product = 'N/A';
+        
+        // Try to get the primary product and its action
+        if (contextualResolution.productActivation.length > 0) {
+          const primaryProduct = contextualResolution.productActivation.find(p => p.priority === 'primary');
+          if (primaryProduct) {
+            product = primaryProduct.product.toUpperCase();
+            if (primaryProduct.actions.length > 0) {
+              const actionNode = FUNCTIONAL_NODES[primaryProduct.actions[0]];
+              if (actionNode) {
+                outcome = actionNode.label;
+              }
+            }
+          }
+        }
+        
+        // If no product found yet, look through the entire traversal path
+        if (product === 'N/A') {
+          // Check all nodes in the traversal path for product associations
+          const allPathNodes = [
+            ...contextualResolution.traversalPath.upward,
+            ...contextualResolution.traversalPath.downward
+          ];
+          
+          // Find the first product-level node in the path
+          for (const nodeId of allPathNodes) {
+            const node = FUNCTIONAL_NODES[nodeId];
+            if (node && node.level === 'product') {
+              product = node.label.toUpperCase();
+              break;
+            }
+          }
+          
+          // If still no product, check for product associations in nodes
+          if (product === 'N/A') {
+            for (const nodeId of allPathNodes) {
+              const node = FUNCTIONAL_NODES[nodeId];
+              if (node && node.products && node.products.length > 0) {
+                product = node.products[0].toUpperCase();
+                break;
+              }
+            }
+          }
+        }
+        
+        // Get outcome from the last node if not set
+        if (outcome === 'No specific outcome' && contextualResolution.traversalPath.downward.length > 0) {
+          const lastNodeId = contextualResolution.traversalPath.downward[contextualResolution.traversalPath.downward.length - 1];
+          const lastNode = FUNCTIONAL_NODES[lastNodeId];
+          if (lastNode) {
+            outcome = lastNode.label;
+          }
+        }
+        
+        // Get the matched node label (entry node)
+        const matchedNode = FUNCTIONAL_NODES[intent.entryNode]?.label || intent.entryNode;
+        
+        const newAction: RecentAction = {
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          persona: currentContext.profile.role,
+          intent: intent.text,
+          product: product,
+          outcome: outcome,
+          matchedNode: matchedNode,
+          timestamp: new Date(),
+          success: contextualResolution.confidenceScore > 0.5
+        };
+        
+        console.log('Adding new action:', newAction); // Debug log
+        
+        // Add to recent actions for this persona (keep last 10)
+        setRecentActionsByPersona(prev => {
+          const personaActions = prev[currentContextId] || [];
+          const updated = [newAction, ...personaActions].slice(0, 10);
+          console.log(`Updated recent actions for ${currentContextId}:`, updated); // Debug log
+          return {
+            ...prev,
+            [currentContextId]: updated
+          };
+        });
+      }
+    }
+  }, [selectedIntent, contextualResolution, currentContext, currentContextId]);
 
   const handleIntentSelect = (intentId: string) => {
     setSelectedIntent(selectedIntent === intentId ? undefined : intentId);
@@ -63,6 +167,7 @@ const IntentDisambiguationSection: React.FC = () => {
         availableContexts={SAMPLE_CONTEXTS}
         onContextChange={handleContextChange}
         currentContextId={currentContextId}
+        recentActions={recentActionsByPersona[currentContextId] || []}
       />
 
       {/* Main Content */}
@@ -77,6 +182,13 @@ const IntentDisambiguationSection: React.FC = () => {
           intents={USER_INTENTS}
           selectedIntent={selectedIntent}
           onIntentSelect={handleIntentSelect}
+          recentActions={
+            // Combine all recent actions from all personas for the intent history
+            Object.values(recentActionsByPersona)
+              .flat()
+              .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+              .slice(0, 10)
+          }
         />
 
         {/* Hierarchy Visualization */}

@@ -695,124 +695,6 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         }
       </div>
 
-      {/* Level labels */}
-      <div style={{
-        position: 'absolute',
-        left: 20,
-        top: 62,
-        fontSize: 11,
-        color: '#666'
-      }}>
-        <div style={{ 
-          marginBottom: 75,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8
-        }}>
-          <div style={{
-            width: 3,
-            height: 30,
-            background: LEVEL_COLORS.product,
-            borderRadius: 2
-          }} />
-          <span style={{ 
-            textTransform: 'uppercase',
-            fontWeight: 'bold',
-            fontSize: 10,
-            color: LEVEL_COLORS.product
-          }}>
-            PRODUCT
-          </span>
-        </div>
-        
-        <div style={{ 
-          marginBottom: 75,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8
-        }}>
-          <div style={{
-            width: 3,
-            height: 30,
-            background: LEVEL_COLORS.outcome,
-            borderRadius: 2
-          }} />
-          <span style={{ 
-            textTransform: 'uppercase',
-            fontWeight: 'bold',
-            fontSize: 10,
-            color: LEVEL_COLORS.outcome
-          }}>
-            OUTCOME
-          </span>
-        </div>
-        
-        <div style={{ 
-          marginBottom: 75,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8
-        }}>
-          <div style={{
-            width: 3,
-            height: 30,
-            background: LEVEL_COLORS.scenario,
-            borderRadius: 2
-          }} />
-          <span style={{ 
-            textTransform: 'uppercase',
-            fontWeight: 'bold',
-            fontSize: 10,
-            color: LEVEL_COLORS.scenario
-          }}>
-            SCENARIO
-          </span>
-        </div>
-        
-        <div style={{ 
-          marginBottom: 75,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8
-        }}>
-          <div style={{
-            width: 3,
-            height: 30,
-            background: LEVEL_COLORS.step,
-            borderRadius: 2
-          }} />
-          <span style={{ 
-            textTransform: 'uppercase',
-            fontWeight: 'bold',
-            fontSize: 10,
-            color: LEVEL_COLORS.step
-          }}>
-            STEP
-          </span>
-        </div>
-        
-        <div style={{ 
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8
-        }}>
-          <div style={{
-            width: 3,
-            height: 30,
-            background: LEVEL_COLORS.action,
-            borderRadius: 2
-          }} />
-          <span style={{ 
-            textTransform: 'uppercase',
-            fontWeight: 'bold',
-            fontSize: 10,
-            color: LEVEL_COLORS.action
-          }}>
-            ACTION
-          </span>
-        </div>
-      </div>
-
       {/* Main visualization */}
       <svg
         width="100%"
@@ -820,6 +702,39 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         viewBox="0 0 1000 600"
         style={{ width: '100%', height: '100%' }}
       >
+        {/* Level labels inside SVG - positioned between node rows */}
+        <g>
+          {/* Product label - above product nodes */}
+          <rect x={20} y={40} width={3} height={30} fill={LEVEL_COLORS.product} rx={2} />
+          <text x={30} y={55} fill={LEVEL_COLORS.product} fontSize={11} fontWeight="bold" dominantBaseline="middle">
+            PRODUCT
+          </text>
+          
+          {/* Outcome label - between product and outcome */}
+          <rect x={20} y={137} width={3} height={30} fill={LEVEL_COLORS.outcome} rx={2} />
+          <text x={30} y={152} fill={LEVEL_COLORS.outcome} fontSize={11} fontWeight="bold" dominantBaseline="middle">
+            OUTCOME
+          </text>
+          
+          {/* Scenario label - between outcome and scenario */}
+          <rect x={20} y={237} width={3} height={30} fill={LEVEL_COLORS.scenario} rx={2} />
+          <text x={30} y={252} fill={LEVEL_COLORS.scenario} fontSize={11} fontWeight="bold" dominantBaseline="middle">
+            SCENARIO
+          </text>
+          
+          {/* Step label - between scenario and step */}
+          <rect x={20} y={337} width={3} height={30} fill={LEVEL_COLORS.step} rx={2} />
+          <text x={30} y={352} fill={LEVEL_COLORS.step} fontSize={11} fontWeight="bold" dominantBaseline="middle">
+            STEP
+          </text>
+          
+          {/* Action label - between step and action */}
+          <rect x={20} y={437} width={3} height={30} fill={LEVEL_COLORS.action} rx={2} />
+          <text x={30} y={452} fill={LEVEL_COLORS.action} fontSize={11} fontWeight="bold" dominantBaseline="middle">
+            ACTION
+          </text>
+        </g>
+        
         {/* Render connections first (behind nodes) */}
         <g>{renderConnections()}</g>
         

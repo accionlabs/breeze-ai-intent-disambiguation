@@ -918,11 +918,7 @@ export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
       department: 'Marketing',
       seniority: 'Mid-level'
     },
-    history: [
-      { timestamp: Date.now() - 3600000, action: 'Launch campaign', product: 'smm', node: 'scenario-content-management' },
-      { timestamp: Date.now() - 1800000, action: 'Track engagement', product: 'smm', node: 'action-track-mentions' },
-      { timestamp: Date.now() - 900000, action: 'Schedule posts', product: 'smm', node: 'step-schedule-posts' }
-    ],
+    history: [],
     patterns: {
       workflowStage: 'Campaign Execution',
       productPreferences: { smm: 0.9, prn: 0.1, brandwatch: 0.2, cision: 0.1, trendkite: 0.1 },
@@ -935,11 +931,7 @@ export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
       department: 'Market Research',
       seniority: 'Senior'
     },
-    history: [
-      { timestamp: Date.now() - 7200000, action: 'Analyze sentiment', product: 'brandwatch', node: 'step-analyze-conversations' },
-      { timestamp: Date.now() - 3600000, action: 'Generate insights', product: 'brandwatch', node: 'action-sentiment-analysis' },
-      { timestamp: Date.now() - 1800000, action: 'Identify patterns', product: 'brandwatch', node: 'step-identify-drivers' }
-    ],
+    history: [],
     patterns: {
       workflowStage: 'Research & Analysis',
       productPreferences: { brandwatch: 0.95, trendkite: 0.6, cision: 0.1, smm: 0.05, prn: 0.05 },
@@ -952,11 +944,7 @@ export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
       department: 'Public Relations',
       seniority: 'Executive'
     },
-    history: [
-      { timestamp: Date.now() - 3600000, action: 'Track coverage', product: 'cision', node: 'step-track-coverage' },
-      { timestamp: Date.now() - 1800000, action: 'Media monitoring', product: 'cision', node: 'scenario-media-monitoring' },
-      { timestamp: Date.now() - 900000, action: 'Distribute release', product: 'prn', node: 'action-send-distribution' }
-    ],
+    history: [],
     patterns: {
       workflowStage: 'Media Relations',
       productPreferences: { cision: 0.8, prn: 0.7, trendkite: 0.3, brandwatch: 0.1, smm: 0.1 },
