@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/nexus-semantic-evolution/static/css/main.2e58bb99.css",
+    "main.js": "/nexus-semantic-evolution/static/js/main.30e7ab65.js",
+    "static/js/453.98351696.chunk.js": "/nexus-semantic-evolution/static/js/453.98351696.chunk.js",
+    "index.html": "/nexus-semantic-evolution/index.html",
+    "main.2e58bb99.css.map": "/nexus-semantic-evolution/static/css/main.2e58bb99.css.map",
+    "main.30e7ab65.js.map": "/nexus-semantic-evolution/static/js/main.30e7ab65.js.map",
+    "453.98351696.chunk.js.map": "/nexus-semantic-evolution/static/js/453.98351696.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.2e58bb99.css",
+    "static/js/main.30e7ab65.js"
+  ]
+}
