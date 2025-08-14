@@ -597,12 +597,8 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
 
   const containerStyle: React.CSSProperties = {
     position: 'relative',
-    width: LAYOUT_CONFIG.container.width,
-    minWidth: LAYOUT_CONFIG.container.minWidth,
+    width: LAYOUT_CONFIG.container.minWidth,
     height: LAYOUT_CONFIG.container.height,
-    background: 'linear-gradient(to bottom, #f5f5f5, white)',
-    borderRadius: LAYOUT_CONFIG.container.borderRadius,
-    overflow: 'hidden',
     display: 'flex',
     justifyContent: 'center',
   };
