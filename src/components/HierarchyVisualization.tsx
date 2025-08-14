@@ -441,10 +441,10 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
               key={connectionKey}
               d={path}
               fill="none"
-              stroke={isInPath ? (isUpward ? '#9333ea' : isDownward ? '#10b981' : '#667eea') : '#d0d0d0'}
-              strokeWidth={isInPath ? 2.5 : 1}
+              stroke={isInPath ? (isUpward ? '#9333ea' : isDownward ? '#10b981' : '#667eea') : '#888888'}
+              strokeWidth={isInPath ? 2.5 : 1.5}
               strokeDasharray={isUpward ? '5,5' : 'none'}
-              opacity={isInPath ? 1 : 0.4}
+              opacity={isInPath ? 1 : 0.7}
               style={{
                 transition: 'all 0.5s ease'
               }}
