@@ -24,12 +24,12 @@ const IntentMappingSection: React.FC = () => {
     }
   };
 
-  // Calculate capability positions above products
+  // Calculate capability positions below products
   const getCapabilityPosition = (productIndex: number, hasMultiple: boolean = false) => {
     const product = products[productIndex];
     return {
       x: product.position.x,
-      y: product.position.y - 100 // Fixed height above products
+      y: product.position.y + 100 // Fixed height below products
     };
   };
 
@@ -86,7 +86,7 @@ const IntentMappingSection: React.FC = () => {
           
           if (!prevProduct || !currentProduct) return null;
           
-          // Connect the capabilities (above products) instead of products
+          // Connect the capabilities (below products) instead of products
           const prevProductIndex = products.findIndex(p => p.id === prevStep.product);
           const currentProductIndex = products.findIndex(p => p.id === step.product);
           const prevCapabilityPos = getCapabilityPosition(prevProductIndex);
@@ -99,7 +99,7 @@ const IntentMappingSection: React.FC = () => {
             <g key={index}>
               <path
                 d={`M ${prevCapabilityPos.x} ${startY} 
-                    Q ${(prevCapabilityPos.x + currentCapabilityPos.x) / 2} ${(startY + endY) / 2 - 30},
+                    Q ${(prevCapabilityPos.x + currentCapabilityPos.x) / 2} ${(startY + endY) / 2 + 30},
                       ${currentCapabilityPos.x} ${endY}`}
                 stroke="#9333ea"
                 strokeWidth="3"
@@ -165,12 +165,12 @@ const IntentMappingSection: React.FC = () => {
       }}>
         <div style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 22, color: '#333', margin: 0 }}>
-            Intent to Product Capability Mapping
+            Cross Product Intent Resolution
           </h2>
           <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: 14 }}>
             {selectedIntent 
-              ? `Showing how "${selectedIntent.text}" maps across products`
-              : 'Select an intent from the sidebar to see how it maps to product capabilities'}
+              ? `Showing how "${selectedIntent.text}" resolves across multiple products`
+              : 'Select an intent from the sidebar to see how it orchestrates across products'}
           </p>
         </div>
         
@@ -226,8 +226,8 @@ const IntentMappingSection: React.FC = () => {
                         width={150}
                       />
                       <ConnectionLine
-                        from={{ x: product.position.x, y: product.position.y }}
-                        to={{ x: position.x, y: position.y + 20 }}
+                        from={{ x: product.position.x, y: product.position.y + 25 }}
+                        to={{ x: position.x, y: position.y - 20 }}
                         color={isWorkflowStep ? '#9333ea' : product.color}
                         opacity={0.3}
                       />
@@ -242,7 +242,7 @@ const IntentMappingSection: React.FC = () => {
                 {selectedIntent.insights && selectedIntent.insights.length > 0 && (
                   <div style={{
                     position: 'absolute',
-                    top: 20,
+                    bottom: 20,
                     right: 20,
                     background: 'rgba(255, 255, 255, 0.95)',
                     border: '2px solid #667eea',

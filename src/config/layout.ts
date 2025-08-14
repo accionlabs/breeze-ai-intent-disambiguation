@@ -11,7 +11,7 @@ export const LAYOUT_CONFIG = {
 
   // Product box layout
   products: {
-    baseY: 400,          // Y position for product boxes
+    baseY: 100,          // Y position for product boxes (moved to top)
     width: 120,          // Width of each product box
     height: 50,          // Height of each product box
     spacing: 200,        // Horizontal spacing between products
@@ -22,14 +22,14 @@ export const LAYOUT_CONFIG = {
 
   // Function/Outcome grid layout
   functions: {
-    baseY: 340,          // Base Y position for functions (moved up to create more space)
+    baseY: 250,          // Base Y position for functions (below products and NEXUS)
     spacingY: 35,        // Vertical spacing between function rows
-    minDistanceFromProducts: 70, // Increased distance between bottom function and top of products
+    minDistanceFromProducts: 100, // Distance between products and functions
   },
 
   // Unified product (NEXUS) layout
   unifiedProduct: {
-    y: 320,              // Y position for NEXUS box
+    y: 175,              // Y position for NEXUS box (between products and functions)
     height: 50,          // Height of NEXUS box
     marginX: 60,         // Extra margin on left/right sides
     borderRadius: 8,
@@ -43,9 +43,9 @@ export const LAYOUT_CONFIG = {
 
   // Composite outcomes layout (Stage 5)
   compositeOutcomes: {
-    spacingFromGrid: 60, // Vertical spacing above the highest function
-    spacing: 300,        // Horizontal spacing between composite outcomes
-    startX: 250,         // Starting X position
+    baseY: 450,          // Y position for composite outcomes (below regular functions)
+    spacing: 280,        // Horizontal spacing between composite outcomes
+    startX: 270,         // Starting X position (adjusted for better centering)
     padding: '8px 16px',
     borderRadius: 20,
     fontSize: 12,
@@ -112,8 +112,8 @@ export const getAdjustedFunctionBaseY = () => {
   const { baseY: productY, height: productHeight } = LAYOUT_CONFIG.products;
   const { minDistanceFromProducts } = LAYOUT_CONFIG.functions;
   
-  // Ensure functions are at least minDistanceFromProducts above products
-  return productY - productHeight/2 - minDistanceFromProducts;
+  // Ensure functions are at least minDistanceFromProducts below products
+  return productY + productHeight/2 + minDistanceFromProducts;
 };
 
 // Calculate function Y offset for Stage 4 & 5

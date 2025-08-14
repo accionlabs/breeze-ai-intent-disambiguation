@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import './App.css';
 import NavigationBar, { Section } from './components/NavigationBar';
+import IntentDisambiguationSection from './sections/IntentDisambiguationSection';
 import IntentMappingSection from './sections/IntentMappingSection';
 import SemanticEvolutionSection from './sections/SemanticEvolutionSection';
 
 function App() {
-  const [activeSection, setActiveSection] = useState<Section>('semantic-evolution');
+  const [activeSection, setActiveSection] = useState<Section>('intent-disambiguation');
   
   return (
     <div className="App">
@@ -26,7 +27,9 @@ function App() {
             />
           </div>
           <p style={{ margin: 0, color: '#666', fontSize: 13 }}>
-            {activeSection === 'intent-mapping' 
+            {activeSection === 'intent-disambiguation'
+              ? 'Context-Aware Intent Resolution'
+              : activeSection === 'intent-mapping' 
               ? 'User Intent → Product Capabilities'
               : 'Evolution from Siloed → Unified Platform'
             }
@@ -42,7 +45,9 @@ function App() {
         margin: '0 auto',
         width: '100%'
       }}>
-        {activeSection === 'intent-mapping' ? (
+        {activeSection === 'intent-disambiguation' ? (
+          <IntentDisambiguationSection />
+        ) : activeSection === 'intent-mapping' ? (
           <IntentMappingSection />
         ) : (
           <SemanticEvolutionSection />

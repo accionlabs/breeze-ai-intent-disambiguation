@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type Section = 'intent-mapping' | 'semantic-evolution';
+export type Section = 'intent-disambiguation' | 'intent-mapping' | 'semantic-evolution';
 
 interface NavigationBarProps {
   activeSection: Section;
@@ -10,9 +10,14 @@ interface NavigationBarProps {
 const NavigationBar: React.FC<NavigationBarProps> = ({ activeSection, onSectionChange }) => {
   const sections: { id: Section; label: string; description: string }[] = [
     {
+      id: 'intent-disambiguation',
+      label: 'Intent Disambiguation',
+      description: 'Context-aware intent resolution'
+    },
+    {
       id: 'intent-mapping',
-      label: 'Intent Mapping',
-      description: 'How user needs map to product capabilities'
+      label: 'Cross Product Intents',
+      description: 'How intents orchestrate across multiple products'
     },
     {
       id: 'semantic-evolution',

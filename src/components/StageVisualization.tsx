@@ -27,7 +27,9 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
     // Group functions by name to identify commonalities
     const functionsByName: Record<string, string[]> = {};
     products.forEach(product => {
-      product.functions.forEach(func => {
+      // Reverse the order of functions for each product
+      const reversedFunctions = [...product.functions].reverse();
+      reversedFunctions.forEach(func => {
         if (!functionsByName[func]) {
           functionsByName[func] = [];
         }
@@ -66,7 +68,9 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
     
     // Now place unique functions, allowing them to fill empty cells in existing rows
     products.forEach((product, colIndex) => {
-      product.functions.forEach(func => {
+      // Reverse the order of functions for each product
+      const reversedFunctions = [...product.functions].reverse();
+      reversedFunctions.forEach(func => {
         // Skip if already placed (overlapping)
         if (overlappingFuncs.includes(func)) return;
         
@@ -102,7 +106,7 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
             productId: product.id,
             position: {
               x: product.position.x,
-              y: baseY - (rowIndex * spacingY)
+              y: baseY + (rowIndex * spacingY)
             },
             row: rowIndex,
             col: colIndex
@@ -254,8 +258,8 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
                   return (
                     <ConnectionLine
                       key={`${prodId}-${item.func}`}
-                      from={{ x: prod.position.x, y: prod.position.y }}
-                      to={{ x: centerX, y: item.position.y }}
+                      from={{ x: prod.position.x, y: prod.position.y + 25 }}
+                      to={{ x: centerX, y: item.position.y - 15 }}
                       color={prod.color}
                       dashed={true}
                       opacity={0.3}
@@ -281,8 +285,8 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
                 highlightColor={intentColor}
               />
               <ConnectionLine
-                from={{ x: product.position.x, y: product.position.y }}
-                to={{ x: item.position.x, y: item.position.y }}
+                from={{ x: product.position.x, y: product.position.y + 25 }}
+                to={{ x: item.position.x, y: item.position.y - 15 }}
                 color={product.color}
                 opacity={0.3}
               />
@@ -299,10 +303,18 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
     const rightEdge = Math.max(...products.map(p => p.position.x)) + LAYOUT_CONFIG.unifiedProduct.marginX;
     const nexusY = LAYOUT_CONFIG.unifiedProduct.y;
     const renderedFunctions = new Set<string>();
-    const yOffset = getFunctionYOffset();
+    // No offset needed for functions
+    const yOffset = 0;
     
     return (
       <>
+        {/* Original products shown with transparency */}
+        {products.map(product => (
+          <div key={product.id} style={{ opacity: 0.3 }}>
+            <ProductBox product={product} />
+          </div>
+        ))}
+        
         {/* Unified Nexus product box spanning full width */}
         <div style={{
           position: 'absolute',
@@ -327,20 +339,6 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
             {NEXUS_BRANDING.fullName}
           </span>
         </div>
-        
-        {/* Original products below with reduced opacity */}
-        {products.map(product => (
-          <React.Fragment key={product.id}>
-            <ProductBox product={product} opacity={0.3} />
-            <ConnectionLine
-              from={{ x: product.position.x, y: product.position.y }}
-              to={{ x: product.position.x, y: nexusY }}
-              color={product.color}
-              dashed={true}
-              opacity={0.2}
-            />
-          </React.Fragment>
-        ))}
         
         {/* All functions unified and connected to Nexus */}
         {Object.entries(functionGrid).map(([key, item]) => {
@@ -369,14 +367,14 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
                     productIds: []
                   }}
                   color="#4caf50"
-                  position={{ x: centerX, y: item.position.y - yOffset }}
+                  position={{ x: centerX, y: item.position.y }}
                   isHighlighted={mappedOutcomes.includes(item.func)}
                   highlightColor={intentColor}
                   isUnified={true}
                 />
                 <ConnectionLine
-                  from={{ x: centerX, y: item.position.y - yOffset }}
-                  to={{ x: centerX, y: nexusY }}
+                  from={{ x: centerX, y: nexusY + 25 }}
+                  to={{ x: centerX, y: item.position.y - 15 }}
                   color="#667eea"
                   opacity={0.4}
                 />
@@ -394,13 +392,13 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
                   productIds: []
                 }}
                 color="#667eea"
-                position={{ x: item.position.x, y: item.position.y - yOffset }}
+                position={{ x: item.position.x, y: item.position.y }}
                 isHighlighted={mappedOutcomes.includes(item.func)}
                 highlightColor={intentColor}
               />
               <ConnectionLine
-                from={{ x: item.position.x, y: item.position.y - yOffset }}
-                to={{ x: item.position.x, y: nexusY }}
+                from={{ x: item.position.x, y: nexusY + 25 }}
+                to={{ x: item.position.x, y: item.position.y - 15 }}
                 color="#667eea"
                 opacity={0.3}
               />
@@ -414,11 +412,18 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
   const renderStage5 = () => {
     const nexusY = LAYOUT_CONFIG.unifiedProduct.y;
     const renderedFunctions = new Set<string>();
-    const yOffset = getFunctionYOffset();
+    // No offset needed for functions
+    const yOffset = 0;
     
     return (
       <>
-        {/* Render Stage 4 content first */}
+        {/* Original products shown with transparency */}
+        {products.map(product => (
+          <div key={product.id} style={{ opacity: 0.3 }}>
+            <ProductBox product={product} />
+          </div>
+        ))}
+        
         {/* Unified Nexus product box */}
         <div style={{
           position: 'absolute',
@@ -444,20 +449,6 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
           </span>
         </div>
         
-        {/* Original products with reduced opacity */}
-        {products.map(product => (
-          <React.Fragment key={product.id}>
-            <ProductBox product={product} opacity={0.3} />
-            <ConnectionLine
-              from={{ x: product.position.x, y: product.position.y }}
-              to={{ x: product.position.x, y: nexusY }}
-              color={product.color}
-              dashed={true}
-              opacity={0.2}
-            />
-          </React.Fragment>
-        ))}
-        
         {/* Regular functions */}
         {Object.entries(functionGrid).map(([key, item]) => {
           const funcIsOverlapping = isOverlapping(item.func);
@@ -481,14 +472,14 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
                     productIds: []
                   }}
                   color="#4caf50"
-                  position={{ x: centerX, y: item.position.y - yOffset }}
+                  position={{ x: centerX, y: item.position.y }}
                   isHighlighted={mappedOutcomes.includes(item.func)}
                   highlightColor={intentColor}
                   isUnified={true}
                 />
                 <ConnectionLine
-                  from={{ x: centerX, y: item.position.y - yOffset }}
-                  to={{ x: centerX, y: nexusY }}
+                  from={{ x: centerX, y: nexusY + 25 }}
+                  to={{ x: centerX, y: item.position.y - 15 }}
                   color="#667eea"
                   opacity={0.4}
                 />
@@ -505,13 +496,13 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
                   productIds: []
                 }}
                 color="#667eea"
-                position={{ x: item.position.x, y: item.position.y - yOffset }}
+                position={{ x: item.position.x, y: item.position.y }}
                 isHighlighted={mappedOutcomes.includes(item.func)}
                 highlightColor={intentColor}
               />
               <ConnectionLine
-                from={{ x: item.position.x, y: item.position.y - yOffset }}
-                to={{ x: item.position.x, y: nexusY }}
+                from={{ x: item.position.x, y: nexusY + 25 }}
+                to={{ x: item.position.x, y: item.position.y - 15 }}
                 color="#667eea"
                 opacity={0.3}
               />
@@ -519,15 +510,11 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
           );
         })}
         
-        {/* Add composite outcomes in the grid above existing functions */}
+        {/* Add composite outcomes below regular functions */}
         {COMPOSITE_OUTCOMES.map((composite, index) => {
-          // Calculate the highest point of existing functions
-          const maxRow = Math.max(...Object.values(functionGrid).map(item => item.row));
-          const highestFunctionY = getAdjustedFunctionBaseY() - (maxRow * LAYOUT_CONFIG.functions.spacingY) - yOffset;
-          
-          // Place composite outcomes above the highest function with some spacing
+          // Place composite outcomes at fixed position below functions
           const xPos = LAYOUT_CONFIG.compositeOutcomes.startX + (index * LAYOUT_CONFIG.compositeOutcomes.spacing);
-          const yPos = highestFunctionY - LAYOUT_CONFIG.compositeOutcomes.spacingFromGrid;
+          const yPos = LAYOUT_CONFIG.compositeOutcomes.baseY;
           
           return (
             <React.Fragment key={composite.name}>
@@ -571,8 +558,8 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
                 return (
                   <ConnectionLine
                     key={`${composite.name}-${compFunc}`}
-                    from={{ x: xPos, y: yPos }}
-                    to={{ x: funcX, y: funcItem.position.y - yOffset }}
+                    from={{ x: funcX, y: funcItem.position.y + 15 }}
+                    to={{ x: xPos, y: yPos - 15 }}
                     color="#9333ea"
                     opacity={0.3}
                     dashed={true}
@@ -580,10 +567,10 @@ const StageVisualization: React.FC<StageVisualizationProps> = ({ stage, highligh
                 );
               })}
               
-              {/* Line from composite to Nexus */}
+              {/* Line from Nexus to composite */}
               <ConnectionLine
-                from={{ x: xPos, y: yPos }}
-                to={{ x: xPos, y: nexusY }}
+                from={{ x: xPos, y: nexusY + 25 }}
+                to={{ x: xPos, y: yPos - 15 }}
                 color="#9333ea"
                 opacity={0.4}
                 dashed={false}

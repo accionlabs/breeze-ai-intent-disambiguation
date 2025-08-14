@@ -28,30 +28,35 @@ const SemanticEvolutionSection: React.FC = () => {
   return (
     <div style={{
       display: 'flex',
-      flexDirection: 'column',
       height: 'calc(100vh - 140px)', // Fixed height to match IntentMappingSection
       overflow: 'hidden',
+      gap: 20,
     }}>
+      {/* Intents on the left (vertical) */}
       <IntentBar 
         currentIntent={currentIntent}
         onIntentSelect={handleIntentSelect}
         currentStage={currentStage}
+        orientation="vertical"
       />
       
       <div style={{ 
         display: 'flex', 
-        gap: 20,
+        flexDirection: 'column',
         flex: 1,
         overflow: 'hidden',
       }}>
+        {/* Evolution timeline on top (horizontal) */}
         <StageControls 
           currentStage={currentStage}
           onStageChange={setCurrentStage}
+          orientation="horizontal"
         />
         
         <div style={{ 
           flex: 1,
           overflowY: 'auto',
+          marginTop: 20,
         }}>
           <div style={{
             background: 'white',

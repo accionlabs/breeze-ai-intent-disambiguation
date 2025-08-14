@@ -141,3 +141,58 @@ export const getIntentError = (stage: StageNumber, intentId: string): string | u
   }
   return stageMapping[intentId].error;
 };
+
+// Helper function to get detailed status for an intent at a given stage
+export const getIntentStatus = (stage: StageNumber, intentId: string): {
+  type: 'success' | 'error' | 'warning';
+  message: string;
+  details?: string;
+} => {
+  const mapping = INTENT_MAPPINGS[stage]?.[intentId];
+  
+  if (!mapping) {
+    return {
+      type: 'error',
+      message: 'Intent not available at this stage',
+    };
+  }
+  
+  if (mapping.error) {
+    return {
+      type: 'error',
+      message: mapping.error,
+      details: stage === 1 ? 'Products operate in isolation with hidden functionality.' :
+               stage === 2 ? 'Functions are visible but routing across products is not possible.' :
+               'System needs more evolution to handle this intent.',
+    };
+  }
+  
+  if (mapping.outcomes.length === 0) {
+    return {
+      type: 'warning',
+      message: 'No functions mapped to this intent',
+      details: 'System cannot identify appropriate functions for this request.',
+    };
+  }
+  
+  // Success cases
+  if (stage >= 4) {
+    return {
+      type: 'success',
+      message: `✓ Intent fully resolved by unified system`,
+      details: `NEXUS routes to: ${mapping.outcomes.join(', ')}`,
+    };
+  } else if (stage === 3) {
+    return {
+      type: 'success',
+      message: `✓ Intent mapped to rationalized functions`,
+      details: `Routes to: ${mapping.outcomes.join(', ')}`,
+    };
+  } else {
+    return {
+      type: 'success',
+      message: `✓ Intent matched to product functions`,
+      details: `Available in: ${mapping.outcomes.join(', ')}`,
+    };
+  }
+};
