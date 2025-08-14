@@ -1,12 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './App.css';
-import NavigationBar, { Section } from './components/NavigationBar';
+import NavigationBar from './components/NavigationBar';
 import IntentDisambiguationSection from './sections/IntentDisambiguationSection';
 import IntentMappingSection from './sections/IntentMappingSection';
 import SemanticEvolutionSection from './sections/SemanticEvolutionSection';
 
-function App() {
-  const [activeSection, setActiveSection] = useState<Section>('intent-disambiguation');
+function AppContent() {
+  const location = useLocation();
+  
+  // Determine subtitle based on current route
+  const getSubtitle = () => {
+    if (location.pathname.includes('intent-disambiguation')) {
+      return 'Context-Aware Intent Resolution';
+    } else if (location.pathname.includes('cross-product-intents')) {
+      return 'User Intent → Product Capabilities';
+    } else if (location.pathname.includes('semantic-evolution')) {
+      return 'Evolution from Siloed → Unified Platform';
+    }
+    return '';
+  };
   
   return (
     <div className="App">
@@ -19,20 +32,12 @@ function App() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'baseline' }}>
             <h1 style={{ margin: 0, fontSize: 24, color: '#333' }}>
-              Cision Nexus Platform
+              Nexus Semantic Engineering Approach
             </h1>
-            <NavigationBar 
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-            />
+            <NavigationBar />
           </div>
           <p style={{ margin: 0, color: '#666', fontSize: 13 }}>
-            {activeSection === 'intent-disambiguation'
-              ? 'Context-Aware Intent Resolution'
-              : activeSection === 'intent-mapping' 
-              ? 'User Intent → Product Capabilities'
-              : 'Evolution from Siloed → Unified Platform'
-            }
+            {getSubtitle()}
           </p>
         </div>
       </header>
@@ -45,15 +50,26 @@ function App() {
         margin: '0 auto',
         width: '100%'
       }}>
-        {activeSection === 'intent-disambiguation' ? (
-          <IntentDisambiguationSection />
-        ) : activeSection === 'intent-mapping' ? (
-          <IntentMappingSection />
-        ) : (
-          <SemanticEvolutionSection />
-        )}
+        <Routes>
+          <Route path="/" element={<Navigate to="/semantic-evolution" replace />} />
+          <Route path="/semantic-evolution" element={<SemanticEvolutionSection />} />
+          <Route path="/cross-product-intents" element={<IntentMappingSection />} />
+          <Route path="/intent-disambiguation" element={<IntentDisambiguationSection />} />
+          <Route path="*" element={<Navigate to="/semantic-evolution" replace />} />
+        </Routes>
       </main>
     </div>
+  );
+}
+
+function App() {
+  // Use basename for GitHub Pages deployment
+  const basename = process.env.PUBLIC_URL || '';
+  
+  return (
+    <BrowserRouter basename={basename}>
+      <AppContent />
+    </BrowserRouter>
   );
 }
 
