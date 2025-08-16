@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Resolution, FUNCTIONAL_NODES, UserContext } from '../config/functionalHierarchy';
+import { RecentAction } from '../sections/IntentDisambiguationSection';
 
 interface ResolutionComparisonProps {
   baseResolution?: Resolution;
@@ -7,6 +8,13 @@ interface ResolutionComparisonProps {
   userContext: UserContext;
   showContext: boolean;
   selectedIntentText?: string;
+  recentActions?: RecentAction[];
+  onSelectedRecentIntentChange?: (action: RecentAction | null) => void;
+  graphStateVersion?: number;
+  currentToggles?: {
+    showRationalized: boolean;
+    showWorkflows: boolean;
+  };
 }
 
 const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
@@ -14,8 +22,59 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
   contextualResolution,
   userContext,
   showContext,
-  selectedIntentText
+  selectedIntentText,
+  recentActions = [],
+  onSelectedRecentIntentChange,
+  graphStateVersion = 0,
+  currentToggles
 }) => {
+  const [selectedRecentIntent, setSelectedRecentIntent] = useState<string | null>(null);
+  const [userDeselected, setUserDeselected] = useState(false);
+  const [lastRecentActionsCount, setLastRecentActionsCount] = useState(0);
+  
+  // Auto-select the latest intent only when a NEW intent is added
+  useEffect(() => {
+    // Check if a new intent was added (not just reordered)
+    const isNewIntentAdded = recentActions.length > 0 && 
+                             recentActions.length > lastRecentActionsCount;
+    
+    if (isNewIntentAdded && !userDeselected) {
+      // Only auto-select the new intent if user hasn't explicitly deselected
+      setSelectedRecentIntent(recentActions[0].id);
+      setUserDeselected(false);
+    }
+    
+    setLastRecentActionsCount(recentActions.length);
+  }, [recentActions.length, recentActions[0]?.id]);
+  
+  // Notify parent when selected recent intent changes
+  useEffect(() => {
+    if (onSelectedRecentIntentChange) {
+      const selected = selectedRecentIntent ? 
+        recentActions.find(a => a.id === selectedRecentIntent) || null : 
+        null;
+      onSelectedRecentIntentChange(selected);
+    }
+  }, [selectedRecentIntent, recentActions, onSelectedRecentIntentChange]);
+  
+  // Clear selection when graph state changes
+  useEffect(() => {
+    setSelectedRecentIntent(null);
+    setUserDeselected(true);
+  }, [graphStateVersion]);
+  
+  // Clear selected recent intent when a new intent is selected from main list
+  // (removed this as we now handle it in the above useEffect)
+  
+  // Get the selected recent action data
+  const selectedRecentAction = selectedRecentIntent
+    ? recentActions.find(action => action.id === selectedRecentIntent)
+    : null;
+  
+  // Determine what to show: current resolution or historical recent intent
+  // Only show current resolution if there's no selected recent action
+  // If a recent action is selected (even the most recent one), use its stored resolution
+  const showCurrentResolution = baseResolution && !selectedRecentAction;
   const getProductColor = (product: string) => {
     const colors: Record<string, string> = {
       bcr: '#f9a825',
@@ -62,17 +121,70 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
           {title}
         </h4>
 
-        {/* Entry Point */}
+        {/* Resolution Result - Product and Outcome */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, color: '#999', marginBottom: 4 }}>ENTRY POINT:</div>
+          <div style={{ fontSize: 10, color: '#999', marginBottom: 4 }}>RESOLVED TO:</div>
+          
+          {/* Primary Product and Outcome */}
+          {resolution.productActivation.length > 0 && (() => {
+            const primaryProduct = resolution.productActivation.find(p => p.priority === 'primary') || resolution.productActivation[0];
+            // Try to find outcome from traversal path
+            let outcomeName = 'N/A';
+            const outcomeNode = resolution.traversalPath.upward
+              .concat(resolution.traversalPath.downward)
+              .map(nodeId => FUNCTIONAL_NODES[nodeId])
+              .find(node => node && node.level === 'outcome');
+            if (outcomeNode) {
+              outcomeName = outcomeNode.label;
+            }
+            
+            return (
+              <div style={{
+                padding: '8px 12px',
+                background: 'linear-gradient(to right, #f0f7ff, white)',
+                border: '2px solid #667eea',
+                borderRadius: 6,
+                marginBottom: 8
+              }}>
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{
+                      padding: '4px 10px',
+                      background: getProductColor(primaryProduct.product),
+                      color: 'white',
+                      borderRadius: 4,
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      flexShrink: 0
+                    }}>
+                      {primaryProduct.product.toUpperCase()}
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: 13,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    paddingLeft: 4
+                  }}>
+                    {outcomeName}
+                  </div>
+                </div>
+                <div style={{ fontSize: 10, color: '#666' }}>
+                  {primaryProduct.actions.length} action{primaryProduct.actions.length !== 1 ? 's' : ''} will be executed
+                </div>
+              </div>
+            );
+          })()}
+          
+          {/* Entry Point Info */}
           <div style={{
             padding: '6px 10px',
             background: '#f8f9fa',
             borderRadius: 4,
-            fontSize: 11,
-            fontWeight: 'bold'
+            fontSize: 10,
+            color: '#666'
           }}>
-            {entryNode?.label} ({entryNode?.level})
+            Entry: <strong>{entryNode?.label}</strong> ({entryNode?.level})
           </div>
         </div>
 
@@ -219,122 +331,311 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
         Intent Resolution
       </h3>
 
-      {selectedIntentText && (
+      {/* Show selected intent or recent intent */}
+      {(selectedRecentAction || selectedIntentText) && (
         <div style={{
           padding: '8px 12px',
-          background: '#e8f5e9',
+          background: selectedRecentAction ? '#f0f7ff' : '#e8f5e9',
           borderRadius: 6,
           fontSize: 12,
-          color: '#2e7d32',
+          color: selectedRecentAction ? '#1565c0' : '#2e7d32',
           marginBottom: 15,
           fontWeight: 'bold'
         }}>
-          "{selectedIntentText}"
+          "{selectedRecentAction ? selectedRecentAction.intent : selectedIntentText}"
+          {selectedRecentAction && (
+            <div style={{ 
+              fontSize: 10, 
+              color: '#666', 
+              fontWeight: 'normal',
+              marginTop: 4
+            }}>
+              From: {selectedRecentAction.persona}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Toggle Context */}
-      <div style={{
-        marginBottom: 15,
-        padding: 10,
-        background: '#f8f9fa',
-        borderRadius: 6,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        <span style={{ fontSize: 11, color: '#666' }}>
-          Context-Aware Resolution
-        </span>
-        <label style={{
-          position: 'relative',
-          display: 'inline-block',
-          width: 40,
-          height: 22
-        }}>
-          <input
-            type="checkbox"
-            checked={showContext}
-            readOnly
-            style={{ display: 'none' }}
-          />
-          <span style={{
-            position: 'absolute',
-            cursor: 'pointer',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: showContext ? '#667eea' : '#ccc',
-            transition: '0.4s',
-            borderRadius: 22
-          }}>
-            <span style={{
-              position: 'absolute',
-              content: '',
-              height: 16,
-              width: 16,
-              left: showContext ? 21 : 3,
-              bottom: 3,
-              background: 'white',
-              transition: '0.4s',
-              borderRadius: '50%'
-            }} />
-          </span>
-        </label>
-      </div>
 
-      {/* Resolution Comparison */}
+      {/* Resolution Display */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {!showContext ? (
-          renderResolution(baseResolution, 'Generic Resolution', false)
-        ) : (
-          <div>
-            {userContext.history.length === 0 ? (
-              <div style={{
-                padding: 20,
-                background: '#fff3e0',
-                borderRadius: 8,
-                fontSize: 11,
-                color: '#e65100',
-                textAlign: 'center'
+        {showCurrentResolution ? (
+          // Show current intent resolution
+          renderResolution(baseResolution, 'Intent Mapping', false)
+        ) : selectedRecentAction ? (
+          // Show selected recent intent's resolution using stored resolution data
+          selectedRecentAction.resolution ? (
+            renderResolution(selectedRecentAction.resolution, `Intent Mapping${selectedRecentAction.toggleStates ? ` (${selectedRecentAction.toggleStates.showRationalized ? 'Rationalized' : 'Not Rationalized'})` : ''}`, false)
+          ) : (
+            // Fallback for old data without stored resolution
+            <div style={{
+              padding: 15,
+              background: 'white',
+              border: '1px solid #e0e0e0',
+              borderRadius: 8
+            }}>
+              <h4 style={{ 
+                fontSize: 12, 
+                marginBottom: 12,
+                color: '#666',
+                fontWeight: 'bold'
               }}>
-                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                  No Context Available
-                </div>
-                <div>
-                  This is a new user with no history. 
-                  The system will use generic resolution.
-                </div>
-                <div style={{ marginTop: 8, color: '#666' }}>
-                  Try selecting different user contexts to see how resolution changes.
+                Intent Mapping
+              </h4>
+              
+              {/* Resolved To section for recent intent */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, color: '#999', marginBottom: 4 }}>RESOLVED TO:</div>
+                <div style={{
+                  padding: '8px 12px',
+                  background: 'linear-gradient(to right, #f0f7ff, white)',
+                  border: '2px solid #667eea',
+                  borderRadius: 6,
+                  marginBottom: 8
+                }}>
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <div style={{
+                        padding: '4px 10px',
+                        background: getProductColor(selectedRecentAction.product.toLowerCase()),
+                        color: 'white',
+                        borderRadius: 4,
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        flexShrink: 0
+                      }}>
+                        {selectedRecentAction.product}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: 13,
+                      fontWeight: 'bold',
+                      color: '#333',
+                      paddingLeft: 4
+                    }}>
+                      {selectedRecentAction.outcome}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 10, color: '#666' }}>
+                    Matched to: {selectedRecentAction.matchedNode}
+                  </div>
                 </div>
               </div>
-            ) : (
-              renderResolution(contextualResolution, 'Context-Based Resolution', true)
-            )}
+              
+              {/* Success indicator */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, color: '#999', marginBottom: 4 }}>STATUS:</div>
+                <div style={{
+                  padding: '6px 10px',
+                  background: selectedRecentAction.success ? '#e8f5e9' : '#ffebee',
+                  borderRadius: 4,
+                  fontSize: 11,
+                  color: selectedRecentAction.success ? '#2e7d32' : '#c62828',
+                  fontWeight: 'bold'
+                }}>
+                  {selectedRecentAction.success ? '✓ Successfully Resolved' : '✗ Resolution Failed'}
+                </div>
+              </div>
+            </div>
+          )
+        ) : (
+          <div style={{
+            padding: 20,
+            background: '#f5f5f5',
+            borderRadius: 8,
+            textAlign: 'center',
+            color: '#999',
+            fontSize: 12,
+            fontStyle: 'italic'
+          }}>
+            Select an intent to see how it maps to products and outcomes
           </div>
         )}
       </div>
 
-      {/* Context Impact Summary */}
-      {showContext && userContext.history.length > 0 && contextualResolution && (
-        <div style={{
-          marginTop: 15,
-          paddingTop: 15,
-          borderTop: '1px solid #e0e0e0',
-          fontSize: 10,
-          color: '#666'
+      
+      {/* Recent Intents Section */}
+      <div style={{
+        marginTop: 20,
+        padding: 15,
+        background: '#f8f9fa',
+        borderRadius: 8,
+        fontSize: 11,
+        color: '#666'
+      }}>
+        <div style={{ 
+          marginBottom: 8, 
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
         }}>
-          <div style={{ fontWeight: 'bold', marginBottom: 6 }}>Context Impact:</div>
-          <div style={{ lineHeight: 1.4 }}>
-            Based on your role as <strong>{userContext.profile.role}</strong> and 
-            recent actions in <strong>{userContext.patterns.workflowStage}</strong>, 
-            the system resolved this intent with {' '}
-            <strong>{Math.round(contextualResolution.confidenceScore * 100)}%</strong> confidence.
-          </div>
+          <span>Recent Intents</span>
+          {recentActions.length > 0 && (
+            <span style={{ 
+              fontSize: 9, 
+              color: '#999',
+              fontWeight: 'normal'
+            }}>
+              Last 5
+            </span>
+          )}
         </div>
-      )}
+        
+        {recentActions.length === 0 ? (
+          <div style={{ 
+            color: '#999', 
+            fontStyle: 'italic',
+            padding: '8px 0'
+          }}>
+            No recent intents. Select an intent to see how it resolves.
+          </div>
+        ) : (
+          <div style={{ 
+            maxHeight: 200,
+            overflowY: 'auto'
+          }}>
+            {recentActions.slice(0, 5).map((action, index) => {
+              const timeAgo = Math.floor((Date.now() - action.timestamp.getTime()) / 1000);
+              const timeStr = timeAgo < 60 ? `${timeAgo}s ago` : 
+                             timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :
+                             `${Math.floor(timeAgo / 3600)}h ago`;
+              const isSelected = selectedRecentIntent === action.id;
+              
+              // Check if the action's toggle states match current graph state
+              const isCompatible = !currentToggles || 
+                (action.toggleStates.showRationalized === currentToggles.showRationalized &&
+                 action.toggleStates.showWorkflows === currentToggles.showWorkflows);
+              
+              return (
+                <div 
+                  key={action.id} 
+                  onClick={() => {
+                    // Only allow clicking if compatible with current state
+                    if (!isCompatible) return;
+                    
+                    if (action.id === selectedRecentIntent) {
+                      // User is deselecting
+                      setSelectedRecentIntent(null);
+                      setUserDeselected(true);
+                    } else {
+                      // User is selecting a different intent
+                      setSelectedRecentIntent(action.id);
+                      setUserDeselected(false);
+                    }
+                  }}
+                  title={!isCompatible ? 
+                    `Cannot select: Graph state has changed. This intent was resolved with Rationalization ${action.toggleStates.showRationalized ? 'ON' : 'OFF'} and Workflows ${action.toggleStates.showWorkflows ? 'ON' : 'OFF'}` :
+                    (isSelected ? 'Click to deselect and clear visualization' : 'Click to view this resolution')
+                  }
+                  style={{
+                    marginBottom: 8,
+                    padding: '8px 10px',
+                    background: !isCompatible ? '#f3f4f6' : (isSelected 
+                      ? 'linear-gradient(to right, #f0f7ff, white)'
+                      : (action.success ? '#fafbfc' : '#fef2f2')),
+                    borderRadius: 4,
+                    border: isSelected ? '2px solid #667eea' : `1px solid ${!isCompatible ? '#d1d5db' : (action.success ? '#e5e7eb' : '#fecaca')}`,
+                    borderLeft: `3px solid ${!isCompatible ? '#9ca3af' : (action.success ? '#10b981' : '#ef4444')}`,
+                    fontSize: 10,
+                    cursor: isCompatible ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isSelected ? '0 2px 8px rgba(102, 126, 234, 0.15)' : 'none',
+                    opacity: !isCompatible ? 0.5 : (action.success ? 1 : 0.9),
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected && isCompatible) {
+                      e.currentTarget.style.background = action.success ? '#f0f9ff' : '#fef2f2';
+                      e.currentTarget.style.borderColor = action.success ? '#cbd5e1' : '#fca5a5';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected && isCompatible) {
+                      e.currentTarget.style.background = action.success ? '#fafbfc' : '#fef2f2';
+                      e.currentTarget.style.borderColor = action.success ? '#e5e7eb' : '#fecaca';
+                    }
+                  }}
+                >
+                  {/* Incompatible state indicator */}
+                  {!isCompatible && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      fontSize: 9,
+                      padding: '2px 6px',
+                      background: '#6b7280',
+                      color: 'white',
+                      borderRadius: 3,
+                      fontWeight: 'bold'
+                    }}>
+                      🔒 LOCKED
+                    </div>
+                  )}
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    marginBottom: 4
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {isSelected && (
+                        <span style={{ 
+                          color: '#667eea',
+                          fontWeight: 'bold',
+                          fontSize: 11
+                        }}>▶</span>
+                      )}
+                      <span style={{ 
+                        fontSize: 11,
+                        fontWeight: 'bold',
+                        color: !isCompatible ? '#9ca3af' : (action.success ? '#10b981' : '#ef4444')
+                      }}>
+                        {action.success ? '✓' : '✗'}
+                      </span>
+                      <span style={{ 
+                        fontWeight: 'bold', 
+                        color: !isCompatible ? '#6b7280' : (isSelected ? '#667eea' : (action.success ? '#333' : '#991b1b'))
+                      }}>
+                        {action.persona}
+                      </span>
+                    </div>
+                    <span style={{ color: !isCompatible ? '#9ca3af' : '#999' }}>{timeStr}</span>
+                  </div>
+                  <div style={{ 
+                    color: !isCompatible ? '#9ca3af' : (isSelected ? '#333' : (action.success ? '#555' : '#7f1d1d')), 
+                    marginBottom: 4,
+                    fontWeight: isSelected ? 500 : 'normal',
+                    fontStyle: action.success ? 'normal' : 'italic'
+                  }}>
+                    "{action.intent}"
+                  </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: 8,
+                    fontSize: 9,
+                    color: !isCompatible ? '#9ca3af' : (isSelected ? '#667eea' : '#666')
+                  }}>
+                    <span>→ {action.product}</span>
+                    <span>• {action.outcome}</span>
+                    {action.toggleStates && (
+                      <span style={{ 
+                        marginLeft: 'auto',
+                        opacity: 0.7,
+                        fontStyle: 'italic'
+                      }}>
+                        {action.toggleStates.showRationalized ? 'R' : ''}
+                        {action.toggleStates.showWorkflows ? 'W' : ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

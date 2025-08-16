@@ -1,6 +1,11 @@
 // Functional Hierarchy data structure for Intent Disambiguation
 
-export type HierarchyLevel = 'product' | 'outcome' | 'scenario' | 'step' | 'action';
+import type { FunctionalGraph } from './graphModel';
+import { GraphOperations, convertLegacyNodes } from './graphModel';
+export type { FunctionalGraph } from './graphModel';
+export { GraphOperations } from './graphModel';
+
+export type HierarchyLevel = 'product' | 'workflow' | 'outcome' | 'scenario' | 'step' | 'action';
 
 export interface FunctionalNode {
   id: string;
@@ -66,7 +71,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'product-cision',
     level: 'product',
     label: 'CisionOne',
-    children: ['outcome-media-intelligence', 'outcome-protect-brand'],
+    children: ['workflow-crisis-response', 'workflow-brand-protection', 'outcome-media-intelligence', 'outcome-protect-brand'],
     parents: [],
     description: 'Media monitoring and journalist database'
   },
@@ -74,7 +79,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'product-prn',
     level: 'product',
     label: 'PRNewswire',
-    children: ['outcome-content-distribution'],
+    children: ['workflow-campaign-intelligence', 'outcome-content-distribution'],
     parents: [],
     description: 'Press release distribution and amplification'
   },
@@ -82,7 +87,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'product-brandwatch',
     level: 'product',
     label: 'Brandwatch',
-    children: ['outcome-consumer-intelligence'],
+    children: ['workflow-campaign-intelligence', 'outcome-consumer-intelligence'],
     parents: [],
     description: 'Consumer insights and sentiment analysis'
   },
@@ -90,7 +95,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'product-smm',
     level: 'product',
     label: 'Social Media Management',
-    children: ['outcome-social-engagement'],
+    children: ['workflow-crisis-response', 'outcome-social-engagement'],
     parents: [],
     description: 'Social media management and engagement'
   },
@@ -98,18 +103,47 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'product-trendkite',
     level: 'product',
     label: 'TrendKite',
-    children: ['outcome-performance-measurement'],
+    children: ['workflow-crisis-response', 'workflow-campaign-intelligence', 'workflow-brand-protection', 'outcome-performance-measurement'],
     parents: [],
     description: 'Analytics and performance reporting'
   },
   
+  // Workflow Level - Cross-product outcomes
+  'workflow-crisis-response': {
+    id: 'workflow-crisis-response',
+    level: 'workflow',
+    label: 'Crisis Response Orchestration',
+    children: ['outcome-media-intelligence', 'outcome-social-engagement', 'outcome-performance-measurement'],
+    parents: ['product-cision', 'product-smm', 'product-trendkite'],
+    products: ['cision', 'smm', 'trendkite'],
+    description: 'Unified crisis detection and response across all channels'
+  },
+  'workflow-campaign-intelligence': {
+    id: 'workflow-campaign-intelligence',
+    level: 'workflow',
+    label: 'Integrated Campaign Intelligence',
+    children: ['outcome-consumer-intelligence', 'outcome-performance-measurement', 'outcome-content-distribution'],
+    parents: ['product-brandwatch', 'product-trendkite', 'product-prn'],
+    products: ['brandwatch', 'trendkite', 'prn'],
+    description: 'Comprehensive campaign performance insights'
+  },
+  'workflow-brand-protection': {
+    id: 'workflow-brand-protection',
+    level: 'workflow',
+    label: 'Predictive Brand Protection',
+    children: ['outcome-protect-brand', 'outcome-media-intelligence', 'outcome-performance-measurement'],
+    parents: ['product-cision', 'product-trendkite'],
+    products: ['cision', 'trendkite'],
+    description: 'Proactive brand reputation management'
+  },
+
   // Outcome Level
   'outcome-media-intelligence': {
     id: 'outcome-media-intelligence',
     level: 'outcome',
     label: 'Media Intelligence',
-    children: ['scenario-media-monitoring', 'scenario-journalist-outreach'],
-    parents: ['product-cision'],
+    children: ['scenario-media-monitoring-cision', 'scenario-media-monitoring-shared', 'scenario-journalist-outreach'],
+    parents: ['product-cision', 'workflow-crisis-response', 'workflow-brand-protection'],
     description: 'Track and analyze media coverage'
   },
   'outcome-protect-brand': {
@@ -117,23 +151,23 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     label: 'Protect Brand',
     children: ['scenario-reputation-monitoring', 'scenario-crisis-management'],
-    parents: ['product-cision'],
+    parents: ['product-cision', 'workflow-brand-protection'],
     description: 'Safeguard brand reputation through media monitoring'
   },
   'outcome-consumer-intelligence': {
     id: 'outcome-consumer-intelligence',
     level: 'outcome',
     label: 'Consumer Intelligence',
-    children: ['scenario-sentiment-analysis', 'scenario-audience-insights'],
-    parents: ['product-brandwatch'],
+    children: ['scenario-media-monitoring-brandwatch', 'scenario-media-monitoring-shared', 'scenario-sentiment-analysis', 'scenario-audience-insights'],
+    parents: ['product-brandwatch', 'workflow-campaign-intelligence'],
     description: 'Deep consumer insights and sentiment analysis'
   },
   'outcome-social-engagement': {
     id: 'outcome-social-engagement',
     level: 'outcome',
     label: 'Social Engagement',
-    children: ['scenario-content-management', 'scenario-community-engagement'],
-    parents: ['product-smm'],
+    children: ['scenario-media-monitoring-smm', 'scenario-media-monitoring-shared', 'scenario-content-management', 'scenario-community-engagement'],
+    parents: ['product-smm', 'workflow-crisis-response'],
     description: 'Manage social media presence and engagement'
   },
   'outcome-content-distribution': {
@@ -141,7 +175,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     label: 'Content Distribution',
     children: ['scenario-press-release', 'scenario-media-amplification'],
-    parents: ['product-prn'],
+    parents: ['product-prn', 'workflow-campaign-intelligence'],
     description: 'Distribute and amplify content through press channels'
   },
   'outcome-performance-measurement': {
@@ -149,18 +183,59 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     label: 'Performance Measurement',
     children: ['scenario-campaign-analytics', 'scenario-roi-reporting'],
-    parents: ['product-trendkite'],
+    parents: ['product-trendkite', 'workflow-crisis-response', 'workflow-campaign-intelligence', 'workflow-brand-protection'],
     description: 'Measure and report on PR and marketing performance'
   },
   
   // Scenario Level
-  'scenario-media-monitoring': {
-    id: 'scenario-media-monitoring',
+  // Pre-rationalized Scenarios (duplicate functionality in each product)
+  'scenario-media-monitoring-cision': {
+    id: 'scenario-media-monitoring-cision',
     level: 'scenario',
     label: 'Media Monitoring',
-    children: ['step-track-coverage', 'step-analyze-media-sentiment'],
+    children: ['step-track-coverage-cision', 'step-analyze-media-sentiment-cision', 'step-social-monitoring-cision'],
     parents: ['outcome-media-intelligence'],
-    description: 'Track media coverage across channels'
+    products: ['cision'],
+    description: 'CisionOne media monitoring implementation'
+  },
+  'scenario-media-monitoring-brandwatch': {
+    id: 'scenario-media-monitoring-brandwatch',
+    level: 'scenario',
+    label: 'Media Monitoring',
+    children: ['step-track-social-brandwatch', 'step-analyze-trends-brandwatch', 'step-social-monitoring-brandwatch'],
+    parents: ['outcome-consumer-intelligence'],
+    products: ['brandwatch'],
+    description: 'Brandwatch media monitoring with consumer focus'
+  },
+  'scenario-media-monitoring-smm': {
+    id: 'scenario-media-monitoring-smm',
+    level: 'scenario',
+    label: 'Media Monitoring',
+    children: ['step-track-mentions-smm', 'step-monitor-engagement-smm', 'step-social-monitoring-smm'],
+    parents: ['outcome-social-engagement'],
+    products: ['smm'],
+    description: 'SMM media monitoring for social engagement'
+  },
+  
+  // Shared Scenario (after rationalization - includes union of all children)
+  'scenario-media-monitoring-shared': {
+    id: 'scenario-media-monitoring-shared',
+    level: 'scenario',
+    label: 'Media Monitoring',
+    children: [
+      // Union of all steps from the three products
+      'step-track-coverage-cision',
+      'step-analyze-media-sentiment-cision',
+      'step-track-social-brandwatch',
+      'step-analyze-trends-brandwatch',
+      'step-track-mentions-smm',
+      'step-monitor-engagement-smm',
+      // Unified social monitoring (contains union of social monitoring actions)
+      'step-social-monitoring-shared'
+    ],
+    parents: ['outcome-media-intelligence', 'outcome-consumer-intelligence', 'outcome-social-engagement'],
+    products: ['cision', 'brandwatch', 'smm'],
+    description: 'Unified media monitoring with all capabilities from all products'
   },
   'scenario-journalist-outreach': {
     id: 'scenario-journalist-outreach',
@@ -238,7 +313,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-campaign-analytics',
     level: 'scenario',
     label: 'Campaign Analytics',
-    children: ['step-measure-reach', 'step-analyze-performance'],
+    children: ['step-measure-reach', 'step-analyze-performance', 'step-analytics-reporting-shared'],
     parents: ['outcome-performance-measurement'],
     description: 'Analyze campaign performance metrics'
   },
@@ -246,29 +321,125 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-roi-reporting',
     level: 'scenario',
     label: 'ROI Reporting',
-    children: ['step-compile-metrics', 'step-generate-reports'],
+    children: ['step-compile-metrics', 'step-generate-reports', 'step-analytics-reporting-shared'],
     parents: ['outcome-performance-measurement'],
     description: 'Generate ROI and executive reports'
   },
   
   // Step Level
+  // Pre-rationalized Steps (duplicate functionality in each product)
+  'step-social-monitoring-cision': {
+    id: 'step-social-monitoring-cision',
+    level: 'step',
+    label: 'Monitor Social Media',
+    children: ['action-track-social-cision', 'action-basic-sentiment-cision'],
+    parents: ['scenario-media-monitoring-cision'],
+    products: ['cision'],
+    description: 'CisionOne social monitoring implementation'
+  },
+  'step-social-monitoring-brandwatch': {
+    id: 'step-social-monitoring-brandwatch',
+    level: 'step',
+    label: 'Monitor Social Media',
+    children: ['action-track-social-brandwatch', 'action-deep-sentiment-brandwatch', 'action-trend-analysis-brandwatch'],
+    parents: ['scenario-media-monitoring-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Brandwatch social monitoring with deep analytics'
+  },
+  'step-social-monitoring-smm': {
+    id: 'step-social-monitoring-smm',
+    level: 'step',
+    label: 'Monitor Social Media',
+    children: ['action-track-social-smm', 'action-realtime-track-smm', 'action-engagement-metrics-smm'],
+    parents: ['scenario-media-monitoring-smm'],
+    products: ['smm'],
+    description: 'SMM social monitoring with engagement focus'
+  },
+  
+  // Product-specific Steps for Media Monitoring (pre-rationalization)
+  'step-track-coverage-cision': {
+    id: 'step-track-coverage-cision',
+    level: 'step',
+    label: 'Track Coverage',
+    children: ['action-set-media-alert', 'action-monitor-outlets'],
+    parents: ['scenario-media-monitoring-cision'],
+    products: ['cision'],
+    description: 'CisionOne coverage tracking'
+  },
+  'step-analyze-media-sentiment-cision': {
+    id: 'step-analyze-media-sentiment-cision',
+    level: 'step',
+    label: 'Analyze Sentiment',
+    children: ['action-tone-analysis', 'action-coverage-report'],
+    parents: ['scenario-media-monitoring-cision'],
+    products: ['cision'],
+    description: 'CisionOne sentiment analysis'
+  },
+  'step-track-social-brandwatch': {
+    id: 'step-track-social-brandwatch',
+    level: 'step',
+    label: 'Track Social Conversations',
+    children: ['action-conversation-tracking', 'action-influencer-tracking'],
+    parents: ['scenario-media-monitoring-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Brandwatch social tracking'
+  },
+  'step-analyze-trends-brandwatch': {
+    id: 'step-analyze-trends-brandwatch',
+    level: 'step',
+    label: 'Analyze Trends',
+    children: ['action-trend-detection', 'action-pattern-analysis'],
+    parents: ['scenario-media-monitoring-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Brandwatch trend analysis'
+  },
+  'step-track-mentions-smm': {
+    id: 'step-track-mentions-smm',
+    level: 'step',
+    label: 'Track Mentions',
+    children: ['action-mention-monitoring', 'action-hashtag-tracking'],
+    parents: ['scenario-media-monitoring-smm'],
+    products: ['smm'],
+    description: 'SMM mention tracking'
+  },
+  'step-monitor-engagement-smm': {
+    id: 'step-monitor-engagement-smm',
+    level: 'step',
+    label: 'Monitor Engagement',
+    children: ['action-engagement-tracking', 'action-response-metrics'],
+    parents: ['scenario-media-monitoring-smm'],
+    products: ['smm'],
+    description: 'SMM engagement monitoring'
+  },
+  
+  // Shared Steps (after rationalization)
+  'step-social-monitoring-shared': {
+    id: 'step-social-monitoring-shared',
+    level: 'step',
+    label: 'Monitor Social Media',
+    children: [
+      // Union of all actual actions from the three products
+      'action-track-social-cision',
+      'action-basic-sentiment-cision',
+      'action-track-social-brandwatch',
+      'action-deep-sentiment-brandwatch',
+      'action-trend-analysis-brandwatch',
+      'action-track-social-smm',
+      'action-realtime-track-smm',
+      'action-engagement-metrics-smm'
+    ],
+    parents: ['scenario-media-monitoring-shared'],
+    products: ['cision', 'brandwatch', 'smm'],
+    description: 'Unified social media monitoring with all capabilities from all products'
+  },
   'step-track-coverage': {
     id: 'step-track-coverage',
     level: 'step',
     label: 'Track Coverage',
     children: ['action-set-media-alert', 'action-monitor-outlets'],
-    parents: ['scenario-media-monitoring', 'scenario-reputation-monitoring'],
+    parents: ['scenario-reputation-monitoring', 'scenario-media-monitoring-shared'],
     products: ['cision'],
     description: 'Track media coverage across outlets'
-  },
-  'step-analyze-media-sentiment': {
-    id: 'step-analyze-media-sentiment',
-    level: 'step',
-    label: 'Analyze Media Sentiment',
-    children: ['action-tone-analysis', 'action-coverage-report'],
-    parents: ['scenario-media-monitoring'],
-    products: ['cision'],
-    description: 'Analyze tone and sentiment in media'
   },
   'step-find-journalists': {
     id: 'step-find-journalists',
@@ -427,10 +598,19 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-analyze-performance',
     level: 'step',
     label: 'Analyze Performance',
-    children: ['action-performance-metrics', 'action-benchmark-comparison'],
+    children: ['action-performance-metrics', 'action-benchmark-comparison', 'action-analytics-shared'],
     parents: ['scenario-campaign-analytics'],
     products: ['trendkite'],
     description: 'Analyze campaign performance'
+  },
+  'step-analytics-reporting-shared': {
+    id: 'step-analytics-reporting-shared',
+    level: 'step',
+    label: 'Analytics & Reporting',
+    children: ['action-analytics-shared', 'action-reporting-shared', 'action-attribution-shared'],
+    parents: ['scenario-campaign-analytics', 'scenario-roi-reporting', 'scenario-media-monitoring'],
+    products: ['trendkite', 'cision', 'brandwatch'],
+    description: 'Shared analytics and reporting capability'
   },
   'step-compile-metrics': {
     id: 'step-compile-metrics',
@@ -451,13 +631,197 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     description: 'Generate executive reports'
   },
   
+  // Action Level - Pre-rationalized Actions (duplicate implementations)
+  // Additional actions for product-specific media monitoring
+  'action-conversation-tracking': {
+    id: 'action-conversation-tracking',
+    level: 'action',
+    label: 'Track Conversations',
+    children: [],
+    parents: ['step-track-social-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Track social conversations'
+  },
+  'action-influencer-tracking': {
+    id: 'action-influencer-tracking',
+    level: 'action',
+    label: 'Track Influencers',
+    children: [],
+    parents: ['step-track-social-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Monitor influencer activity'
+  },
+  'action-trend-detection': {
+    id: 'action-trend-detection',
+    level: 'action',
+    label: 'Detect Trends',
+    children: [],
+    parents: ['step-analyze-trends-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Detect emerging trends'
+  },
+  'action-pattern-analysis': {
+    id: 'action-pattern-analysis',
+    level: 'action',
+    label: 'Analyze Patterns',
+    children: [],
+    parents: ['step-analyze-trends-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Analyze conversation patterns'
+  },
+  'action-mention-monitoring': {
+    id: 'action-mention-monitoring',
+    level: 'action',
+    label: 'Monitor Mentions',
+    children: [],
+    parents: ['step-track-mentions-smm'],
+    products: ['smm'],
+    description: 'Monitor brand mentions'
+  },
+  'action-hashtag-tracking': {
+    id: 'action-hashtag-tracking',
+    level: 'action',
+    label: 'Track Hashtags',
+    children: [],
+    parents: ['step-track-mentions-smm'],
+    products: ['smm'],
+    description: 'Track hashtag performance'
+  },
+  'action-engagement-tracking': {
+    id: 'action-engagement-tracking',
+    level: 'action',
+    label: 'Track Engagement',
+    children: [],
+    parents: ['step-monitor-engagement-smm'],
+    products: ['smm'],
+    description: 'Track engagement metrics'
+  },
+  'action-response-metrics': {
+    id: 'action-response-metrics',
+    level: 'action',
+    label: 'Response Metrics',
+    children: [],
+    parents: ['step-monitor-engagement-smm'],
+    products: ['smm'],
+    description: 'Measure response times and rates'
+  },
+  
+  // Action Level - Pre-rationalized Actions (duplicate implementations)
+  // CisionOne implementation
+  'action-track-social-cision': {
+    id: 'action-track-social-cision',
+    level: 'action',
+    label: 'Track Social Media',
+    children: [],
+    parents: ['step-social-monitoring-cision'],
+    products: ['cision'],
+    description: 'CisionOne basic social tracking'
+  },
+  'action-basic-sentiment-cision': {
+    id: 'action-basic-sentiment-cision',
+    level: 'action',
+    label: 'Basic Sentiment',
+    children: [],
+    parents: ['step-social-monitoring-cision'],
+    products: ['cision'],
+    description: 'CisionOne basic sentiment analysis'
+  },
+  
+  // Brandwatch implementation
+  'action-track-social-brandwatch': {
+    id: 'action-track-social-brandwatch',
+    level: 'action',
+    label: 'Track Social Media',
+    children: [],
+    parents: ['step-social-monitoring-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Brandwatch comprehensive tracking'
+  },
+  'action-deep-sentiment-brandwatch': {
+    id: 'action-deep-sentiment-brandwatch',
+    level: 'action',
+    label: 'Deep Sentiment Analysis',
+    children: [],
+    parents: ['step-social-monitoring-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Brandwatch AI-powered sentiment'
+  },
+  'action-trend-analysis-brandwatch': {
+    id: 'action-trend-analysis-brandwatch',
+    level: 'action',
+    label: 'Trend Analysis',
+    children: [],
+    parents: ['step-social-monitoring-brandwatch'],
+    products: ['brandwatch'],
+    description: 'Brandwatch trend detection'
+  },
+  
+  // SMM implementation
+  'action-track-social-smm': {
+    id: 'action-track-social-smm',
+    level: 'action',
+    label: 'Track Social Media',
+    children: [],
+    parents: ['step-social-monitoring-smm'],
+    products: ['smm'],
+    description: 'SMM social tracking'
+  },
+  'action-realtime-track-smm': {
+    id: 'action-realtime-track-smm',
+    level: 'action',
+    label: 'Real-time Tracking',
+    children: [],
+    parents: ['step-social-monitoring-smm'],
+    products: ['smm'],
+    description: 'SMM real-time monitoring'
+  },
+  'action-engagement-metrics-smm': {
+    id: 'action-engagement-metrics-smm',
+    level: 'action',
+    label: 'Engagement Metrics',
+    children: [],
+    parents: ['step-social-monitoring-smm'],
+    products: ['smm'],
+    description: 'SMM engagement analytics'
+  },
+  
+  // Note: Shared actions are not needed - the shared step directly references
+  // the union of all original actions from the products
+  'action-analytics-shared': {
+    id: 'action-analytics-shared',
+    level: 'action',
+    label: 'Generate Analytics',
+    children: [],
+    parents: ['step-analytics-reporting-shared', 'step-analyze-performance'],
+    products: ['trendkite', 'cision', 'brandwatch'],
+    description: 'Shared analytics generation'
+  },
+  'action-reporting-shared': {
+    id: 'action-reporting-shared',
+    level: 'action',
+    label: 'Create Reports',
+    children: [],
+    parents: ['step-analytics-reporting-shared'],
+    products: ['trendkite', 'cision', 'brandwatch'],
+    description: 'Shared reporting capability'
+  },
+  'action-attribution-shared': {
+    id: 'action-attribution-shared',
+    level: 'action',
+    label: 'Attribution Analysis',
+    children: [],
+    parents: ['step-analytics-reporting-shared'],
+    products: ['trendkite', 'cision', 'brandwatch'],
+    description: 'Shared attribution analysis'
+  },
+  
   // Action Level - CisionOne Actions
   'action-set-media-alert': {
     id: 'action-set-media-alert',
     level: 'action',
     label: 'Set Media Alert',
     children: [],
-    parents: ['step-track-coverage', 'step-monitor-alerts'],
+    parents: ['step-monitor-alerts', 'step-track-coverage'],
     products: ['cision'],
     description: 'Configure media monitoring alerts'
   },
@@ -475,7 +839,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Tone Analysis',
     children: [],
-    parents: ['step-analyze-media-sentiment'],
+    parents: ['step-analyze-media-sentiment-cision'],
     products: ['cision'],
     description: 'Analyze media tone'
   },
@@ -484,7 +848,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Coverage Report',
     children: [],
-    parents: ['step-analyze-media-sentiment'],
+    parents: ['step-analyze-media-sentiment-cision'],
     products: ['cision'],
     description: 'Generate coverage report'
   },
@@ -907,6 +1271,64 @@ export const USER_INTENTS: UserIntent[] = [
     entryLevel: 'action',
     entryNode: 'action-set-media-alert',
     ambiguous: true
+  },
+  // Intents that map to overlapping nodes (pre-rationalized duplicates)
+  {
+    id: 'intent-monitor-social',
+    text: 'Monitor social media conversations',
+    entryLevel: 'step',
+    entryNode: 'step-social-monitoring-shared',  // Maps to shared node (works when rationalized)
+    ambiguous: false
+  },
+  {
+    id: 'intent-media-monitoring',
+    text: 'Set up comprehensive media monitoring',
+    entryLevel: 'scenario',
+    entryNode: 'scenario-media-monitoring-shared',  // Maps to shared node (works when rationalized)
+    ambiguous: false
+  },
+  {
+    id: 'intent-track-social-cision',
+    text: 'Track social mentions in news outlets',
+    entryLevel: 'step',
+    entryNode: 'step-social-monitoring-cision',  // Maps to Cision-specific duplicate
+    ambiguous: false
+  },
+  {
+    id: 'intent-track-social-brandwatch',
+    text: 'Analyze social conversations for insights',
+    entryLevel: 'step',
+    entryNode: 'step-social-monitoring-brandwatch',  // Maps to Brandwatch-specific duplicate
+    ambiguous: false
+  },
+  {
+    id: 'intent-track-social-smm',
+    text: 'Monitor real-time social engagement',
+    entryLevel: 'step',
+    entryNode: 'step-social-monitoring-smm',  // Maps to SMM-specific duplicate
+    ambiguous: false
+  },
+  // Intents that map to workflow nodes
+  {
+    id: 'intent-crisis-orchestration',
+    text: 'Coordinate multi-channel crisis response',
+    entryLevel: 'workflow',
+    entryNode: 'workflow-crisis-response',
+    ambiguous: false
+  },
+  {
+    id: 'intent-campaign-intelligence',
+    text: 'Get integrated campaign intelligence across all channels',
+    entryLevel: 'workflow',
+    entryNode: 'workflow-campaign-intelligence',
+    ambiguous: false
+  },
+  {
+    id: 'intent-brand-protection',
+    text: 'Set up predictive brand protection system',
+    entryLevel: 'workflow',
+    entryNode: 'workflow-brand-protection',
+    ambiguous: false
   }
 ];
 
@@ -966,13 +1388,23 @@ export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
   }
 };
 
-// Level colors for visualization
+// Level colors for visualization (kept for backward compatibility)
 export const LEVEL_COLORS = {
   product: '#6b7280',  // Gray
+  workflow: '#ec4899',  // Pink - Cross-product workflows
   outcome: '#9333ea',  // Purple
   scenario: '#3b82f6', // Blue
   step: '#10b981',     // Green
   action: '#f59e0b'    // Orange
+};
+
+// Product-specific colors for better visual distinction
+export const PRODUCT_COLORS = {
+  'cision': '#3b82f6',      // Blue - CisionOne
+  'prn': '#10b981',         // Green - PRNewswire
+  'brandwatch': '#ec4899',  // Pink - Brandwatch
+  'smm': '#f59e0b',         // Orange - Social Media Management
+  'trendkite': '#8b5cf6'    // Purple - TrendKite
 };
 
 export const LEVEL_DESCRIPTIONS = {
@@ -981,3 +1413,9 @@ export const LEVEL_DESCRIPTIONS = {
   step: 'Individual workflow steps',
   action: 'Concrete executable actions'
 };
+
+// Export the new graph model version
+export const FUNCTIONAL_GRAPH: FunctionalGraph = convertLegacyNodes(FUNCTIONAL_NODES);
+
+// Create a graph operations instance for convenience
+export const graphOps = new GraphOperations(FUNCTIONAL_GRAPH);
