@@ -122,7 +122,6 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   return (
     <g 
       style={{ 
-        opacity: finalOpacity,
         cursor: hasMatchedChildren ? 'pointer' : 'default'
       }}
       onClick={(e) => {
@@ -145,7 +144,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           stroke="#f97316"
           strokeWidth={2.5}
           strokeDasharray="8,4"
-          opacity={0.8}
+          opacity={finalOpacity * 0.8}
         />
       )}
       
@@ -157,10 +156,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         height={50}
         rx={8}
         fill={finalFillColor}
+        fillOpacity={showContext ? (0.3 + confidence * 0.7) : 1}
         stroke={finalStrokeColor}
         strokeWidth={finalStrokeWidth}
+        strokeOpacity={finalOpacity}
         strokeDasharray={strokeDasharray}
-        opacity={showContext ? (0.3 + confidence * 0.7) : 1}
         style={{
           filter: isEntry ? 'drop-shadow(0 0 10px rgba(255, 68, 68, 0.6))' : 
                   isHovered ? 'drop-shadow(0 0 5px rgba(0, 0, 0, 0.2))' : 'none'
@@ -175,7 +175,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           y={textStartY + index * lineHeight}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill={isInPath ? 'white' : '#333'}
+          fill={isEntry ? 'white' : (isInPath ? '#000' : '#333')}
           fontSize={12}
           fontWeight={isInPath || isEntry ? 'bold' : 'normal'}
           style={{ pointerEvents: 'none' }}
