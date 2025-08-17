@@ -223,9 +223,12 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 10, color: '#999', marginBottom: 4 }}>CONTEXT PATH:</div>
             <div style={{ fontSize: 10, color: '#9333ea' }}>
-              {resolution.traversalPath.upward.map(nodeId => 
-                FUNCTIONAL_NODES[nodeId]?.label
-              ).filter(Boolean).join(' → ')}
+              {resolution.traversalPath.upward
+                .slice()
+                .reverse()
+                .map(nodeId => FUNCTIONAL_NODES[nodeId]?.label)
+                .filter(Boolean)
+                .join(' → ')}
             </div>
           </div>
         )}

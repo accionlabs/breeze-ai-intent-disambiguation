@@ -136,27 +136,6 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     // When switching to multiple mode, we keep all expanded nodes as they are
   }, [expansionMode, lastExpandedNode]);
   
-  // Example: Using the new graph model for efficient operations
-  // This demonstrates how the new model simplifies graph operations
-  useEffect(() => {
-    if (entryNode) {
-      // Example 1: Get ancestors using new graph model (much simpler!)
-      const ancestors = graphOps.getAncestors(entryNode);
-      console.log('Ancestors using new model:', ancestors);
-      
-      // Example 2: Get descendants
-      const descendants = graphOps.getDescendants(entryNode);
-      console.log('Descendants using new model:', descendants);
-      
-      // Example 3: Find overlapping nodes
-      const overlaps = graphOps.findOverlappingNodes();
-      console.log('Overlapping nodes:', overlaps);
-      
-      // Example 4: Get subgraph from entry node
-      const subgraph = graphOps.getSubgraph(entryNode, 2);
-      console.log('Subgraph (2 levels deep):', subgraph);
-    }
-  }, [entryNode]);
 
   // Calculate which nodes are in the matched path using the new graph model
   const matchedNodes = useMemo(() => {
@@ -179,15 +158,15 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       ancestors.forEach(ancestorId => matched.add(ancestorId));
     });
     
-    console.log('Matched nodes:', Array.from(matched), 'for entry:', effectiveEntryNode);
     return matched;
   }, [effectiveResolution, effectiveEntryNode]);
 
-  // Initialize expanded nodes based on selection
+  // Initialize expanded nodes based on selection and/or overlaps
   useEffect(() => {
+    const nodesToExpand = new Set<string>();
+    
+    // First, handle intent selection if present
     if ((selectedIntent || effectiveResolution) && effectiveEntryNode) {
-      const nodesToExpand = new Set<string>();
-      
       // When intent is selected or recent action is selected, expand nodes along the matched path
       // Build path from entry node up to root using graph model
       const ancestors = graphOps.getAncestors(effectiveEntryNode);
@@ -224,21 +203,80 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         nodesToExpand.add(effectiveEntryNode);
       }
       
-      console.log('Auto-expanding nodes:', Array.from(nodesToExpand), 'for entry:', effectiveEntryNode);
-      setExpandedNodes(nodesToExpand);
-    } else {
-      // Default: nothing expanded
-      setExpandedNodes(new Set());
     }
-  }, [selectedIntent, effectiveResolution, effectiveEntryNode, matchedNodes]);
+    
+    // Then, handle overlaps if showOverlaps is ON and no intent is selected
+    else if (showOverlaps) {
+      // Use the same lists that are used for showing dashed borders
+      const duplicateNodes = [
+        'scenario-media-monitoring-cision',
+        'scenario-media-monitoring-brandwatch', 
+        'scenario-media-monitoring-smm',
+        'step-social-monitoring-cision',
+        'step-social-monitoring-brandwatch',
+        'step-social-monitoring-smm',
+        'step-track-coverage-cision',
+        'step-analyze-media-sentiment-cision',
+        'step-track-social-brandwatch',
+        'step-analyze-trends-brandwatch',
+        'step-track-mentions-smm',
+        'step-monitor-engagement-smm',
+        'action-track-social-cision',
+        'action-basic-sentiment-cision',
+        'action-track-social-brandwatch',
+        'action-deep-sentiment-brandwatch',
+        'action-trend-analysis-brandwatch',
+        'action-track-social-smm',
+        'action-realtime-track-smm',
+        'action-engagement-metrics-smm'
+      ];
+      
+      const sharedNodes = [
+        'scenario-media-monitoring-shared',
+        'step-social-monitoring-shared'
+      ];
+      
+      // Determine which nodes to use based on rationalization state
+      const overlappingNodes = showRationalized ? sharedNodes : duplicateNodes;
+      
+      // For each overlapping node, expand its parent and ancestors
+      overlappingNodes.forEach(nodeId => {
+        // Only process if this node exists
+        if (FUNCTIONAL_NODES[nodeId]) {
+          // Get immediate parents
+          const parents = graphOps.getParents(nodeId);
+          parents.forEach(parentId => {
+            // Expand the parent
+            nodesToExpand.add(parentId);
+            
+            // Walk up and expand all ancestors
+            let current = parentId;
+            while (current) {
+              const grandparents = graphOps.getParents(current);
+              if (grandparents.length > 0) {
+                nodesToExpand.add(grandparents[0]);
+                current = grandparents[0];
+              } else {
+                break;
+              }
+            }
+          });
+        }
+      });
+      
+    }
+    
+    // Set the final expanded nodes
+    setExpandedNodes(nodesToExpand);
+  }, [selectedIntent, effectiveResolution, effectiveEntryNode, matchedNodes, showOverlaps, showRationalized]);
 
   // Calculate which nodes should be visible using depth-first traversal
   const visibleNodes = useMemo(() => {
     const visible = new Set<string>();
     
     // Depth-first traversal to collect visible nodes
-    const dfsCollectVisible = (nodeId: string, parentVisible: boolean = true) => {
-      if (!parentVisible) return;
+    const dfsCollectVisible = (nodeId: string, parentVisible: boolean = true, parentExpanded: boolean = true) => {
+      if (!parentVisible || !parentExpanded) return;
       
       const node = FUNCTIONAL_GRAPH.nodes[nodeId];
       if (!node) return;
@@ -311,29 +349,56 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       // Check if this node should be visible
       const shouldBeVisible = selectedIntent 
         ? matchedNodes.has(nodeId)  // When intent selected, only show matched nodes
-        : true;  // When no intent, show all expanded paths
+        : true;  // When no intent, show all nodes that are reached through expanded parents
       
-      if (shouldBeVisible && parentVisible) {
+      if (shouldBeVisible && parentVisible && parentExpanded) {
         visible.add(nodeId);
         
-        // Only traverse children if this node is expanded
-        if (expandedNodes.has(nodeId)) {
-          const children = graphOps.getChildren(nodeId);
-          children.forEach(childId => {
-            dfsCollectVisible(childId, true);
-          });
-        }
+        // Traverse children, passing whether this node is expanded
+        const isThisNodeExpanded = expandedNodes.has(nodeId);
+        const children = graphOps.getChildren(nodeId);
+        children.forEach(childId => {
+          dfsCollectVisible(childId, true, isThisNodeExpanded);
+        });
       }
     };
     
     // Start DFS from root nodes (products)
     const roots = Array.from(FUNCTIONAL_GRAPH.graph.roots);
-    roots.forEach(rootId => {
-      // Product nodes are always visible if they match or no intent is selected
-      if (!selectedIntent || matchedNodes.has(rootId)) {
-        dfsCollectVisible(rootId, true);
-      }
-    });
+    
+    // When showing overlaps and no intent is selected, only process roots that are expanded
+    if (showOverlaps && !selectedIntent) {
+      roots.forEach(rootId => {
+        // Only make root visible if it's in the expanded set
+        if (expandedNodes.has(rootId)) {
+          visible.add(rootId);
+          const children = graphOps.getChildren(rootId);
+          children.forEach(childId => {
+            dfsCollectVisible(childId, true, true);
+          });
+        }
+      });
+    } else if (selectedIntent) {
+      // When intent selected, only show roots that match
+      roots.forEach(rootId => {
+        if (matchedNodes.has(rootId)) {
+          dfsCollectVisible(rootId, true, true);
+        }
+      });
+    } else {
+      // Default case: show all roots
+      roots.forEach(rootId => {
+        visible.add(rootId);
+        // Only traverse children if this root is expanded
+        const isRootExpanded = expandedNodes.has(rootId);
+        if (isRootExpanded) {
+          const children = graphOps.getChildren(rootId);
+          children.forEach(childId => {
+            dfsCollectVisible(childId, true, true);
+          });
+        }
+      });
+    }
     
     return visible;
   }, [expandedNodes, selectedIntent, matchedNodes, showOverlaps, showRationalized, showWorkflows]);
