@@ -1,17 +1,36 @@
-import React from 'react';
-import { UserIntent, LEVEL_COLORS } from '../config/functionalHierarchy';
+import React, { useState } from 'react';
+import { UserIntent, LEVEL_COLORS, FUNCTIONAL_NODES } from '../config/functionalHierarchy';
+import IntentInput from './IntentInput';
+import { GeneratedIntent } from '../utils/intentMatcher';
 
 interface IntentExamplesProps {
   intents: UserIntent[];
   selectedIntent?: string;
   onIntentSelect: (intentId: string) => void;
+  generatedIntent?: GeneratedIntent | null;
+  onGeneratedIntentSelect: (intent: GeneratedIntent) => void;
+  showRationalized?: boolean;
 }
 
 const IntentExamples: React.FC<IntentExamplesProps> = ({ 
   intents, 
   selectedIntent, 
-  onIntentSelect
+  onIntentSelect,
+  generatedIntent,
+  onGeneratedIntentSelect,
+  showRationalized = true
 }) => {
+  const [currentGeneratedIntent, setCurrentGeneratedIntent] = useState<GeneratedIntent | null>(null);
+  
+  const handleIntentGenerated = (intent: GeneratedIntent) => {
+    setCurrentGeneratedIntent(intent);
+    onGeneratedIntentSelect(intent);
+  };
+  
+  // Clear current generated intent when a new one is being generated
+  const handleNewIntentInput = () => {
+    setCurrentGeneratedIntent(null);
+  };
   const getLevelIcon = (level: string) => {
     const icons = {
       outcome: '🎯',
@@ -42,13 +61,23 @@ const IntentExamples: React.FC<IntentExamplesProps> = ({
         User Intent Examples
       </h3>
       
+      {/* Intent Input Component */}
+      <IntentInput 
+        onIntentGenerated={handleIntentGenerated}
+        currentGeneratedIntent={currentGeneratedIntent}
+        onNewInput={handleNewIntentInput}
+        showRationalized={showRationalized}
+      />
+      
       <div style={{ 
         fontSize: 11, 
         color: '#666', 
         marginBottom: 15,
+        paddingTop: 10,
+        borderTop: '1px solid #e0e0e0',
         lineHeight: 1.4
       }}>
-        Click an intent to see how it maps to the functional hierarchy
+        Or select a predefined intent below
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>

@@ -1,0 +1,283 @@
+import React, { useState, useRef } from 'react';
+import { generateIntentFromText, GeneratedIntent } from '../utils/intentMatcher';
+
+interface IntentInputProps {
+  onIntentGenerated: (intent: GeneratedIntent) => void;
+  currentGeneratedIntent: GeneratedIntent | null;
+  onNewInput?: () => void;
+  showRationalized?: boolean;
+}
+
+const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, currentGeneratedIntent, onNewInput, showRationalized = true }) => {
+  const [inputText, setInputText] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!inputText.trim()) {
+      setError('Please enter an intent');
+      return;
+    }
+    
+    // Clear previous match when submitting new intent
+    if (onNewInput) {
+      onNewInput();
+    }
+    
+    setIsProcessing(true);
+    setError(null);
+    
+    // Simulate processing delay (like API call)
+    setTimeout(() => {
+      const generatedIntent = generateIntentFromText(inputText, showRationalized);
+      
+      if (generatedIntent) {
+        onIntentGenerated(generatedIntent);
+        setInputText(''); // Clear input after successful generation
+        // Keep focus on the input field
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+      } else {
+        setError('No matching functionality found. Try different keywords.');
+      }
+      
+      setIsProcessing(false);
+    }, 300);
+  };
+
+  const exampleQueries = [
+    "monitor social media conversations",
+    "track brand sentiment",
+    "analyze media coverage",
+    "identify influencers",
+    "manage crisis response"
+  ];
+
+  const handleExampleClick = (example: string) => {
+    setInputText(example);
+    setError(null);
+  };
+
+  return (
+    <div style={{
+      padding: 15,
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      borderRadius: 8,
+      marginBottom: 15,
+      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)'
+    }}>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: 10 }}>
+          <label style={{
+            display: 'block',
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: 6,
+            textTransform: 'uppercase',
+            letterSpacing: 0.5
+          }}>
+            Type Your Intent
+          </label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputText}
+              onChange={(e) => {
+                setInputText(e.target.value);
+                setError(null);
+              }}
+              placeholder="e.g., track media coverage"
+              style={{
+                flex: 1,
+                padding: '8px 10px',
+                borderRadius: 6,
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                background: 'rgba(255, 255, 255, 0.95)',
+                fontSize: 12,
+                color: '#333',
+                outline: 'none',
+                transition: 'all 0.3s ease',
+                minWidth: 0  // Important for flex to work properly
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#667eea';
+                e.target.style.background = 'white';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                e.target.style.background = 'rgba(255, 255, 255, 0.95)';
+              }}
+              disabled={isProcessing}
+            />
+            <button
+              type="submit"
+              disabled={isProcessing}
+              title={isProcessing ? 'Processing...' : 'Find matching function'}
+              style={{
+                padding: '8px',
+                background: isProcessing ? '#666' : 'white',
+                color: isProcessing ? 'white' : '#667eea',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: 14,
+                fontWeight: 'bold',
+                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                width: 36,
+                height: 36,
+                flexShrink: 0,  // Prevent button from shrinking
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }}
+              onMouseEnter={(e) => {
+                if (!isProcessing) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+              }}
+            >
+              {isProcessing ? '⏳' : '🔍'}
+            </button>
+          </div>
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div style={{
+            padding: '8px 12px',
+            background: 'rgba(244, 67, 54, 0.1)',
+            border: '1px solid rgba(244, 67, 54, 0.3)',
+            borderRadius: 4,
+            fontSize: 11,
+            color: '#ffcdd2',
+            marginTop: 8
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Example queries */}
+        <div style={{ marginTop: 10 }}>
+          <div style={{
+            fontSize: 10,
+            color: 'rgba(255, 255, 255, 0.7)',
+            marginBottom: 6,
+            textTransform: 'uppercase',
+            letterSpacing: 0.5
+          }}>
+            Try Examples:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {exampleQueries.map((example, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleExampleClick(example)}
+                style={{
+                  padding: '4px 8px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: 4,
+                  fontSize: 10,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                }}
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+        </div>
+      </form>
+
+      {/* Current matched intent display */}
+      {currentGeneratedIntent && (
+        <div style={{
+          marginTop: 15,
+          padding: 10,
+          background: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: 6,
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{
+            fontSize: 10,
+            color: 'rgba(255, 255, 255, 0.7)',
+            marginBottom: 4,
+            textTransform: 'uppercase'
+          }}>
+            Current Match:
+          </div>
+          <div style={{
+            fontSize: 12,
+            color: 'white',
+            fontWeight: 'bold',
+            marginBottom: 6
+          }}>
+            "{currentGeneratedIntent.text}"
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 11,
+            color: 'rgba(255, 255, 255, 0.9)'
+          }}>
+            <span>→</span>
+            <span style={{
+              padding: '2px 6px',
+              background: currentGeneratedIntent.matchConfidence > 0.7 ? 'rgba(76, 175, 80, 0.3)' :
+                         currentGeneratedIntent.matchConfidence > 0.4 ? 'rgba(255, 152, 0, 0.3)' :
+                         'rgba(244, 67, 54, 0.3)',
+              borderRadius: 3,
+              border: '1px solid rgba(255, 255, 255, 0.3)'
+            }}>
+              {Math.round(currentGeneratedIntent.matchConfidence * 100)}% match
+            </span>
+            <span>{currentGeneratedIntent.matchedNodeLabel}</span>
+          </div>
+          
+          {/* Alternative matches */}
+          {currentGeneratedIntent.alternativeMatches && currentGeneratedIntent.alternativeMatches.length > 0 && (
+            <div style={{
+              marginTop: 8,
+              paddingTop: 8,
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              fontSize: 10,
+              color: 'rgba(255, 255, 255, 0.7)'
+            }}>
+              <div style={{ marginBottom: 4 }}>Other possible matches:</div>
+              {currentGeneratedIntent.alternativeMatches.map((alt, idx) => (
+                <div key={idx} style={{ marginLeft: 10, color: 'rgba(255, 255, 255, 0.6)' }}>
+                  • {alt.label} ({Math.round(alt.score * 100)}%)
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default IntentInput;

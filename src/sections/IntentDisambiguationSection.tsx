@@ -3,12 +3,14 @@ import UserContextBar from '../components/UserContextBar';
 import IntentExamples from '../components/IntentExamples';
 import HierarchyVisualization, { ExpansionMode } from '../components/HierarchyVisualization';
 import ResolutionComparison from '../components/ResolutionComparison';
+import { GeneratedIntent } from '../utils/intentMatcher';
 import {
   USER_INTENTS,
   SAMPLE_CONTEXTS,
   FUNCTIONAL_NODES,
   Resolution,
-  UserContext
+  UserContext,
+  RATIONALIZED_NODE_ALTERNATIVES
 } from '../config/functionalHierarchy';
 
 export interface RecentAction {
@@ -33,12 +35,14 @@ const IntentDisambiguationSection: React.FC = () => {
   const [showContext, setShowContext] = useState<boolean>(true);
   const [expansionMode, setExpansionMode] = useState<ExpansionMode>('single');
   const [showOverlaps, setShowOverlaps] = useState<boolean>(false);
-  const [showRationalized, setShowRationalized] = useState<boolean>(true);
+  const [showRationalized, setShowRationalized] = useState<boolean>(false);
   const [showWorkflows, setShowWorkflows] = useState<boolean>(false);
   // Store recent actions per persona
   const [recentActionsByPersona, setRecentActionsByPersona] = useState<Record<string, RecentAction[]>>({});
   const [selectedRecentAction, setSelectedRecentAction] = useState<RecentAction | null>(null);
   const [graphStateVersion, setGraphStateVersion] = useState<number>(0);
+  const [generatedIntent, setGeneratedIntent] = useState<GeneratedIntent | null>(null);
+  const [lastTrackedIntent, setLastTrackedIntent] = useState<string | undefined>();
 
   const currentContext = SAMPLE_CONTEXTS[currentContextId];
 
@@ -50,104 +54,155 @@ const IntentDisambiguationSection: React.FC = () => {
 
   // Calculate resolution based on selected intent and context
   const { baseResolution, contextualResolution } = useMemo(() => {
-    if (!selectedIntent) return { baseResolution: undefined, contextualResolution: undefined };
+    if (!selectedIntent && !generatedIntent) return { baseResolution: undefined, contextualResolution: undefined };
 
-    const intent = USER_INTENTS.find(i => i.id === selectedIntent);
-    if (!intent) return { baseResolution: undefined, contextualResolution: undefined };
-
-    // Base resolution (no context)
-    const baseRes = calculateResolution(intent.entryNode, null, showRationalized, showWorkflows);
+    // Determine the entry node
+    let entryNode: string | undefined;
+    if (generatedIntent && selectedIntent === generatedIntent.id) {
+      entryNode = generatedIntent.entryNode;
+    } else if (selectedIntent) {
+      const intent = USER_INTENTS.find(i => i.id === selectedIntent);
+      entryNode = intent?.entryNode;
+    }
     
-    // Contextual resolution
-    const contextRes = calculateResolution(intent.entryNode, currentContext, showRationalized, showWorkflows);
+    if (!entryNode) return { baseResolution: undefined, contextualResolution: undefined };
+
+    // Get recent actions for current persona - filter for successful ones only for context
+    const currentPersonaRecentActions = recentActionsByPersona[currentContextId] || [];
+    const successfulRecentActions = currentPersonaRecentActions.filter(action => action.success);
+    
+    // Base resolution (no context) - don't pass recent actions
+    const baseRes = calculateResolution(entryNode, null, showRationalized, showWorkflows, []);
+    
+    // Contextual resolution - pass only successful recent actions when context is on
+    const contextRes = calculateResolution(entryNode, currentContext, showRationalized, showWorkflows, successfulRecentActions);
 
     return { baseResolution: baseRes, contextualResolution: contextRes };
-  }, [selectedIntent, currentContext, showRationalized, showWorkflows]);
+  }, [selectedIntent, generatedIntent, currentContext, showRationalized, showWorkflows, currentContextId, recentActionsByPersona]);
 
-  const selectedIntentData = USER_INTENTS.find(i => i.id === selectedIntent);
+  // Get the selected intent data (either from predefined or generated)
+  const selectedIntentData = useMemo(() => {
+    if (generatedIntent && selectedIntent === generatedIntent.id) {
+      // Convert generated intent to UserIntent format
+      const node = FUNCTIONAL_NODES[generatedIntent.entryNode];
+      return {
+        id: generatedIntent.id,
+        text: generatedIntent.text,
+        entryNode: generatedIntent.entryNode,
+        entryLevel: node?.level || 'action',
+        ambiguous: false
+      };
+    }
+    return USER_INTENTS.find(i => i.id === selectedIntent);
+  }, [selectedIntent, generatedIntent]);
 
   // Track recent action when intent is selected
   useEffect(() => {
-    if (selectedIntent && baseResolution) {
-      const intent = USER_INTENTS.find(i => i.id === selectedIntent);
-      if (intent) {
+    // Only track if this is a new intent selection (not already tracked)
+    if (selectedIntent === lastTrackedIntent) {
+      return;
+    }
+    
+    // Use the appropriate resolution based on context setting
+    const activeResolution = showContext ? contextualResolution : baseResolution;
+    
+    if (selectedIntent && activeResolution) {
+      // Get intent data (could be predefined or generated)
+      let intentData: { text: string; entryNode: string } | undefined;
+      
+      if (generatedIntent && selectedIntent === generatedIntent.id) {
+        intentData = generatedIntent;
+      } else {
+        intentData = USER_INTENTS.find(i => i.id === selectedIntent);
+      }
+      
+      if (intentData) {
+        // Check if resolution was successful
+        const isSuccessful = activeResolution.confidenceScore > 0;
+        
+        // Always prepare the action data (for display in recent intents)
         // Get the outcome and product from the resolution
         let outcome = 'No specific outcome';
         let product = 'N/A';
         
-        // First, look for product in the upward traversal path (most reliable)
-        for (const nodeId of baseResolution.traversalPath.upward) {
-          const node = FUNCTIONAL_NODES[nodeId];
-          if (node && node.level === 'product') {
-            product = node.label;
-            break;
-          }
-        }
-        
-        // If no product found in upward path, check productActivation
-        if (product === 'N/A' && baseResolution.productActivation.length > 0) {
-          const primaryProduct = baseResolution.productActivation.find(p => p.priority === 'primary');
-          if (primaryProduct) {
-            product = primaryProduct.product.toUpperCase();
-          }
-        }
-        
-        // If still no product, check for product associations in nodes
-        if (product === 'N/A') {
-          const allPathNodes = [
-            ...baseResolution.traversalPath.upward,
-            ...baseResolution.traversalPath.downward
-          ];
-          
-          for (const nodeId of allPathNodes) {
+        // Only extract product/outcome if resolution was successful
+        if (isSuccessful) {
+          // First, look for product in the upward traversal path (most reliable)
+          for (const nodeId of activeResolution.traversalPath.upward) {
             const node = FUNCTIONAL_NODES[nodeId];
-            if (node && node.products && node.products.length > 0) {
-              product = node.products[0].toUpperCase();
+            if (node && node.level === 'product') {
+              product = node.label;
               break;
             }
           }
-        }
-        
-        // Get outcome from upward path (look for outcome level node)
-        for (const nodeId of baseResolution.traversalPath.upward) {
-          const node = FUNCTIONAL_NODES[nodeId];
-          if (node && node.level === 'outcome') {
-            outcome = node.label;
-            break;
+          
+          // If no product found in upward path, check productActivation
+          if (product === 'N/A' && activeResolution.productActivation.length > 0) {
+            const primaryProduct = activeResolution.productActivation.find(p => p.priority === 'primary');
+            if (primaryProduct) {
+              product = primaryProduct.product.toUpperCase();
+            }
           }
-        }
-        
-        // If no outcome found in upward path, check downward path
-        if (outcome === 'No specific outcome' && baseResolution.traversalPath.downward.length > 0) {
-          for (const nodeId of baseResolution.traversalPath.downward) {
+          
+          // If still no product, check for product associations in nodes
+          if (product === 'N/A') {
+            const allPathNodes = [
+              ...activeResolution.traversalPath.upward,
+              ...activeResolution.traversalPath.downward
+            ];
+            
+            for (const nodeId of allPathNodes) {
+              const node = FUNCTIONAL_NODES[nodeId];
+              if (node && node.products && node.products.length > 0) {
+                product = node.products[0].toUpperCase();
+                break;
+              }
+            }
+          }
+          
+          // Get outcome from upward path (look for outcome level node)
+          for (const nodeId of activeResolution.traversalPath.upward) {
             const node = FUNCTIONAL_NODES[nodeId];
             if (node && node.level === 'outcome') {
               outcome = node.label;
               break;
             }
           }
+          
+          // If no outcome found in upward path, check downward path
+          if (outcome === 'No specific outcome' && activeResolution.traversalPath.downward.length > 0) {
+            for (const nodeId of activeResolution.traversalPath.downward) {
+              const node = FUNCTIONAL_NODES[nodeId];
+              if (node && node.level === 'outcome') {
+                outcome = node.label;
+                break;
+              }
+            }
+          }
         }
         
         // Get the matched node label (entry node)
-        const matchedNode = FUNCTIONAL_NODES[intent.entryNode]?.label || intent.entryNode;
+        const matchedNode = FUNCTIONAL_NODES[intentData.entryNode]?.label || intentData.entryNode;
         
+        // Create the action record (always, for display in recent intents)
         const newAction: RecentAction = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           persona: currentContext.profile.role,
-          intent: intent.text,
+          intent: intentData.text,
           product: product,
           outcome: outcome,
           matchedNode: matchedNode,
           timestamp: new Date(),
-          success: baseResolution.confidenceScore > 0,
-          resolution: JSON.parse(JSON.stringify(baseResolution)), // Deep copy the resolution to prevent updates
+          success: isSuccessful,
+          resolution: JSON.parse(JSON.stringify(activeResolution)), // Deep copy the resolution to prevent updates
           toggleStates: {
             showRationalized: showRationalized,
             showWorkflows: showWorkflows
           }
         };
         
-        // Add to recent actions for this persona (keep last 10)
+        // Always add to recent actions (for display in recent intents panel)
+        // The success flag will indicate if it was successful or not
         setRecentActionsByPersona(prev => {
           const personaActions = prev[currentContextId] || [];
           const updated = [newAction, ...personaActions].slice(0, 10);
@@ -157,15 +212,26 @@ const IntentDisambiguationSection: React.FC = () => {
           };
         });
         
+        // Mark this intent as tracked regardless of success
+        setLastTrackedIntent(selectedIntent);
+        
         // Unselect the intent after adding to recent actions
         // This prevents re-resolution when toggles change
         setSelectedIntent(undefined);
       }
     }
-  }, [selectedIntent, baseResolution, currentContext, currentContextId, showRationalized, showWorkflows]);
+  }, [selectedIntent, generatedIntent, baseResolution, contextualResolution, currentContext, currentContextId, showRationalized, showWorkflows, showContext, lastTrackedIntent]);
 
   const handleIntentSelect = (intentId: string) => {
     setSelectedIntent(selectedIntent === intentId ? undefined : intentId);
+  };
+
+  const handleGeneratedIntentSelect = (intent: GeneratedIntent) => {
+    setGeneratedIntent(intent);
+    // Reset the tracking so this new intent gets added to recent actions
+    setLastTrackedIntent(undefined);
+    // Auto-select the generated intent
+    setSelectedIntent(intent.id);
   };
 
   const handleContextChange = (contextId: string) => {
@@ -191,7 +257,7 @@ const IntentDisambiguationSection: React.FC = () => {
         availableContexts={SAMPLE_CONTEXTS}
         onContextChange={handleContextChange}
         currentContextId={currentContextId}
-        recentActions={recentActionsByPersona[currentContextId] || []}
+        recentActions={(recentActionsByPersona[currentContextId] || []).filter(action => action.success)}
       />
 
       {/* Main Content */}
@@ -206,6 +272,9 @@ const IntentDisambiguationSection: React.FC = () => {
           intents={USER_INTENTS}
           selectedIntent={selectedIntent}
           onIntentSelect={handleIntentSelect}
+          generatedIntent={generatedIntent}
+          onGeneratedIntentSelect={handleGeneratedIntentSelect}
+          showRationalized={showRationalized}
         />
 
         {/* Hierarchy Visualization */}
@@ -403,10 +472,68 @@ function calculateResolution(
   entryNodeId: string, 
   context: UserContext | null,
   showRationalized: boolean,
-  showWorkflows: boolean
+  showWorkflows: boolean,
+  recentActions: RecentAction[] = []
 ): Resolution {
   // First check if this is a shared/rationalized node that requires rationalization to be on
   if (entryNodeId.includes('-shared') && !showRationalized) {
+    // When rationalization is OFF but we have context, try to resolve using recent actions
+    if (context && recentActions.length > 0) {
+      // Look for alternatives based on recent actions
+      const alternatives = RATIONALIZED_NODE_ALTERNATIVES[entryNodeId];
+      
+      if (alternatives) {
+        // Count product usage in recent SUCCESSFUL actions (already filtered)
+        const productWeights: Record<string, number> = {};
+        
+        recentActions.forEach((action) => {
+          const product = action.product.toLowerCase();
+          
+          // Normalize product names
+          const productNormalization: Record<string, string> = {
+            'cisionone': 'cision',
+            'cision one': 'cision',
+            'bcr': 'brandwatch',
+            'brandwatch consumer research': 'brandwatch'
+          };
+          
+          const normalizedProduct = productNormalization[product] || product;
+          
+          if (normalizedProduct !== 'n/a') {
+            productWeights[normalizedProduct] = (productWeights[normalizedProduct] || 0) + 1;
+          }
+        });
+        
+        // Find the most used product
+        let bestProduct: string | null = null;
+        let maxWeight = 0;
+        
+        for (const [product, weight] of Object.entries(productWeights)) {
+          if (weight > maxWeight && alternatives[product]) {
+            bestProduct = product;
+            maxWeight = weight;
+          }
+        }
+        
+        // If we found a preferred product, redirect to that specific node
+        if (bestProduct) {
+          const specificNodeId = alternatives[bestProduct];
+          const specificNode = FUNCTIONAL_NODES[specificNodeId];
+          
+          if (specificNode) {
+            // Recursively call with the specific node
+            const resolution = calculateResolution(specificNodeId, context, showRationalized, showWorkflows, recentActions);
+            resolution.reasoning.unshift(`Context-based resolution: Selected ${bestProduct.toUpperCase()} based on recent usage (${maxWeight} recent actions)`);
+            return resolution;
+          }
+        }
+      }
+    }
+    
+    // When rationalization is OFF and no context helps, shared nodes should ALWAYS fail
+    // This demonstrates the problem of overlapping functions across products
+    
+    // Return unresolved - overlapping functions cannot be resolved
     return {
       entryNode: entryNodeId,
       traversalPath: { upward: [], downward: [] },

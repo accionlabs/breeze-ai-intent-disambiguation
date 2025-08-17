@@ -962,8 +962,8 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     let strokeWidthOverride = undefined;
     let strokeDasharray = undefined;
     
-    if (isSharedNode && !isEntry) {
-      // Use a gradient purple color for shared nodes
+    if (showRationalized && isSharedNode && !isEntry) {
+      // Use a gradient purple color for shared nodes (only when rationalization is ON)
       nodeStrokeColor = '#9333ea'; // Purple for shared
       strokeWidthOverride = 3; // Thicker border for shared nodes
       if (isInPath) {
@@ -1022,7 +1022,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         strokeColor={nodeStrokeColor}
         strokeWidth={strokeWidthOverride}
         showOverlapBorder={showOverlapBorder}
-        badge={isSharedNode && nodeData?.products ? { 
+        badge={showRationalized && isSharedNode && nodeData?.products ? { 
           text: `${nodeData.products.length} Products`, 
           color: '#9333ea',
           position: 'bottom'

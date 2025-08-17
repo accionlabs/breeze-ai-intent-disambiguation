@@ -30,22 +30,21 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
 }) => {
   const [selectedRecentIntent, setSelectedRecentIntent] = useState<string | null>(null);
   const [userDeselected, setUserDeselected] = useState(false);
-  const [lastRecentActionsCount, setLastRecentActionsCount] = useState(0);
+  const [lastFirstIntentId, setLastFirstIntentId] = useState<string | null>(null);
   
   // Auto-select the latest intent only when a NEW intent is added
   useEffect(() => {
-    // Check if a new intent was added (not just reordered)
-    const isNewIntentAdded = recentActions.length > 0 && 
-                             recentActions.length > lastRecentActionsCount;
+    // Check if the first intent in the list has changed (indicating a new intent was added)
+    const currentFirstIntentId = recentActions.length > 0 ? recentActions[0].id : null;
     
-    if (isNewIntentAdded && !userDeselected) {
-      // Only auto-select the new intent if user hasn't explicitly deselected
-      setSelectedRecentIntent(recentActions[0].id);
+    if (currentFirstIntentId && currentFirstIntentId !== lastFirstIntentId) {
+      // A new intent was added at the top of the list
+      setSelectedRecentIntent(currentFirstIntentId);
       setUserDeselected(false);
     }
     
-    setLastRecentActionsCount(recentActions.length);
-  }, [recentActions.length, recentActions[0]?.id]);
+    setLastFirstIntentId(currentFirstIntentId);
+  }, [recentActions]);
   
   // Notify parent when selected recent intent changes
   useEffect(() => {
@@ -57,10 +56,14 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
     }
   }, [selectedRecentIntent, recentActions, onSelectedRecentIntentChange]);
   
-  // Clear selection when graph state changes
+  // Clear selection when graph state changes (toggles change)
+  // But don't clear if we just selected a new intent
   useEffect(() => {
-    setSelectedRecentIntent(null);
-    setUserDeselected(true);
+    // Only clear if the selected intent is not the most recent one
+    if (selectedRecentIntent && recentActions.length > 0 && selectedRecentIntent !== recentActions[0].id) {
+      setSelectedRecentIntent(null);
+      setUserDeselected(true);
+    }
   }, [graphStateVersion]);
   
   // Clear selected recent intent when a new intent is selected from main list
@@ -120,6 +123,31 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
         }}>
           {title}
         </h4>
+
+        {/* Context-based resolution indicator */}
+        {resolution.reasoning.some(r => r.includes('Context-based resolution')) && (
+          <div style={{
+            marginBottom: 12,
+            padding: '8px 12px',
+            background: 'linear-gradient(to right, #fef3c7, #fef9e7)',
+            border: '2px solid #f59e0b',
+            borderRadius: 6,
+            fontSize: 11,
+            color: '#92400e',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <span>🎯</span>
+            <div>
+              <div>Context-Based Resolution</div>
+              <div style={{ fontSize: 10, fontWeight: 'normal', marginTop: 2, color: '#78350f' }}>
+                {resolution.reasoning.find(r => r.includes('Context-based resolution'))?.replace('Context-based resolution: ', '')}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Resolution Result - Product and Outcome */}
         <div style={{ marginBottom: 12 }}>

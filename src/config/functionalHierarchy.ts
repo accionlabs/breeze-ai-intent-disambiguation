@@ -1419,3 +1419,33 @@ export const FUNCTIONAL_GRAPH: FunctionalGraph = convertLegacyNodes(FUNCTIONAL_N
 
 // Create a graph operations instance for convenience
 export const graphOps = new GraphOperations(FUNCTIONAL_GRAPH);
+
+// Maps rationalized/shared nodes to their product-specific alternatives
+// Used for context-based resolution when rationalization is OFF
+export const RATIONALIZED_NODE_ALTERNATIVES: Record<string, Record<string, string>> = {
+  'step-social-monitoring-shared': {
+    'cision': 'step-social-monitoring-cision',
+    'brandwatch': 'step-social-monitoring-brandwatch',
+    'smm': 'step-social-monitoring-smm'
+  },
+  'scenario-media-monitoring-shared': {
+    'cision': 'scenario-media-monitoring-cision',
+    'brandwatch': 'scenario-media-monitoring-brandwatch',
+    'smm': 'scenario-media-monitoring-smm'
+  },
+  'step-track-coverage-shared': {
+    'cision': 'step-track-coverage-cision',
+    'prn': 'step-track-coverage',  // Note: PRN uses the non-suffixed version
+    'trendkite': 'step-track-coverage'  // Trendkite also uses this
+  },
+  'step-analyze-sentiment-shared': {
+    'cision': 'step-analyze-media-sentiment-cision',
+    'brandwatch': 'step-analyze-trends-brandwatch',
+    'smm': 'step-monitor-engagement-smm'
+  },
+  'step-analytics-reporting-shared': {
+    'cision': 'step-compile-metrics',
+    'brandwatch': 'step-generate-reports',
+    'trendkite': 'step-analyze-performance'
+  }
+};
