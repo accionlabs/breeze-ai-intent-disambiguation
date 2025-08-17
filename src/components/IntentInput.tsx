@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { generateIntentFromText, GeneratedIntent } from '../utils/intentMatcher';
+import { EXAMPLE_QUERIES, INTENT_INPUT_PLACEHOLDER } from '../config';
 
 interface IntentInputProps {
   onIntentGenerated: (intent: GeneratedIntent) => void;
@@ -48,14 +49,6 @@ const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput
     }, 300);
   };
 
-  const exampleQueries = [
-    "monitor social media conversations",
-    "track brand sentiment",
-    "analyze media coverage",
-    "identify influencers",
-    "manage crisis response"
-  ];
-
   const handleExampleClick = (example: string) => {
     setInputText(example);
     setError(null);
@@ -91,7 +84,7 @@ const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput
                 setInputText(e.target.value);
                 setError(null);
               }}
-              placeholder="e.g., track media coverage"
+              placeholder={INTENT_INPUT_PLACEHOLDER}
               style={{
                 flex: 1,
                 padding: '8px 10px',
@@ -179,7 +172,7 @@ const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput
             Try Examples:
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {exampleQueries.map((example, index) => (
+            {EXAMPLE_QUERIES.map((example: string, index: number) => (
               <button
                 key={index}
                 type="button"

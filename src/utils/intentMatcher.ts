@@ -1,33 +1,6 @@
-import { FUNCTIONAL_NODES, FunctionalNode } from '../config/functionalHierarchy';
+import { FUNCTIONAL_NODES, FunctionalNode, PRODUCT_CODES, DOMAIN_SYNONYMS, WORD_FORMS } from '../config';
 
-// Domain-specific synonyms for PR/marketing context
-const DOMAIN_SYNONYMS: Record<string, string[]> = {
-  'monitor': ['track', 'watch', 'observe', 'follow', 'check', 'survey', 'scan'],
-  'analyze': ['examine', 'study', 'review', 'assess', 'evaluate', 'investigate', 'measure'],
-  'media': ['press', 'news', 'coverage', 'publications', 'outlets', 'journalists'],
-  'social': ['social media', 'networks', 'platforms', 'channels'],
-  'sentiment': ['opinion', 'perception', 'attitude', 'mood', 'feeling', 'tone'],
-  'crisis': ['emergency', 'issue', 'problem', 'incident', 'threat', 'disaster'],
-  'brand': ['reputation', 'image', 'company', 'organization', 'business'],
-  'report': ['dashboard', 'analytics', 'insights', 'metrics', 'data', 'statistics'],
-  'content': ['posts', 'articles', 'stories', 'material', 'copy'],
-  'engagement': ['interaction', 'participation', 'involvement'],
-  'response': ['reply', 'answer', 'feedback', 'reaction'],
-  'influence': ['impact', 'reach', 'authority', 'clout'],
-  'campaign': ['initiative', 'program', 'effort', 'push'],
-  'distribution': ['sharing', 'syndication', 'dissemination', 'broadcast'],
-  'conversation': ['discussion', 'dialogue', 'talk', 'chatter'],
-  'trend': ['pattern', 'movement', 'tendency', 'direction'],
-  'coverage': ['exposure', 'publicity', 'attention', 'mention'],
-  'track': ['monitor', 'follow', 'trace', 'watch'],
-  'create': ['make', 'build', 'develop', 'generate', 'produce'],
-  'manage': ['handle', 'control', 'oversee', 'administer', 'coordinate'],
-  'share': ['distribute', 'post', 'publish', 'broadcast'],
-  'identify': ['find', 'discover', 'detect', 'spot', 'recognize'],
-  'protect': ['defend', 'safeguard', 'shield', 'preserve'],
-  'improve': ['enhance', 'boost', 'optimize', 'strengthen', 'upgrade'],
-  'measure': ['track', 'quantify', 'assess', 'evaluate', 'gauge']
-};
+// Use domain-specific synonyms from config
 
 // Calculate Levenshtein distance between two strings
 function levenshteinDistance(str1: string, str2: string): number {
@@ -68,37 +41,9 @@ function levenshteinDistance(str1: string, str2: string): number {
 function stem(word: string): string {
   const lower = word.toLowerCase();
   
-  // Special cases for common word forms
-  const specialCases: Record<string, string> = {
-    'creation': 'create',
-    'creating': 'create',
-    'created': 'create',
-    'creates': 'create',
-    'monitoring': 'monitor',
-    'monitored': 'monitor',
-    'monitors': 'monitor',
-    'tracking': 'track',
-    'tracked': 'track',
-    'tracks': 'track',
-    'analyzing': 'analyze',
-    'analyzed': 'analyze',
-    'analyzes': 'analyze',
-    'analysis': 'analyze',
-    'reporting': 'report',
-    'reported': 'report',
-    'reports': 'report',
-    'managing': 'manage',
-    'managed': 'manage',
-    'manages': 'manage',
-    'management': 'manage',
-    'identifying': 'identify',
-    'identified': 'identify',
-    'identifies': 'identify',
-    'identification': 'identify'
-  };
-  
-  if (specialCases[lower]) {
-    return specialCases[lower];
+  // Use word forms from config
+  if (WORD_FORMS[lower]) {
+    return WORD_FORMS[lower];
   }
   
   // Remove common suffixes
@@ -119,7 +64,7 @@ function areSynonyms(word1: string, word2: string): boolean {
   
   // Check direct synonym relationship
   for (const [key, synonyms] of Object.entries(DOMAIN_SYNONYMS)) {
-    const allWords = [key, ...synonyms];
+    const allWords = [key, ...(synonyms as string[])];
     if (allWords.includes(w1) && allWords.includes(w2)) {
       return true;
     }
@@ -182,7 +127,7 @@ export function findBestMatches(inputText: string, topN: number = 5): MatchResul
   const results: MatchResult[] = [];
   
   // Score each node
-  for (const [nodeId, node] of Object.entries(FUNCTIONAL_NODES)) {
+  for (const [nodeId, node] of Object.entries(FUNCTIONAL_NODES) as [string, FunctionalNode][]) {
     if (!node) continue;
     
     const nodeTokens = tokenize(node.label);
@@ -322,7 +267,7 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
     const labelGroups: Record<string, MatchResult[]> = {};
     
     // Group top matches by their label
-    matches.slice(0, 5).forEach(match => {
+    matches.slice(0, 5).forEach((match: any) => {
       const label = match.node.label.toLowerCase();
       if (!labelGroups[label]) {
         labelGroups[label] = [];
@@ -337,13 +282,13 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
     if (sameLabelMatches && sameLabelMatches.length > 1) {
       // Check if these are from different products (indicating overlap)
       const products = new Set<string>();
-      sameLabelMatches.forEach(match => {
+      sameLabelMatches.forEach((match: any) => {
         // Check if node has different product suffixes or is shared
-        if (match.nodeId.includes('-cision')) products.add('cision');
-        if (match.nodeId.includes('-brandwatch')) products.add('brandwatch');
-        if (match.nodeId.includes('-smm')) products.add('smm');
-        if (match.nodeId.includes('-prn')) products.add('prn');
-        if (match.nodeId.includes('-trendkite')) products.add('trendkite');
+        PRODUCT_CODES.forEach((productCode: string) => {
+          if (match.nodeId.includes(`-${productCode}`)) {
+            products.add(productCode);
+          }
+        });
         if (match.nodeId.includes('-shared')) products.add('shared');
       });
       
@@ -362,8 +307,8 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
             matchedNodeLabel: sharedNode.node.label,
             isAmbiguous: true,
             alternativeMatches: sameLabelMatches
-              .filter(m => m.nodeId !== sharedNode.nodeId)
-              .map(m => ({
+              .filter((m: any) => m.nodeId !== sharedNode.nodeId)
+              .map((m: any) => ({
                 nodeId: m.nodeId,
                 label: m.node.label,
                 score: m.score
@@ -377,14 +322,14 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
     // Group matches by their base function (removing product suffixes)
     const functionGroups: Record<string, MatchResult[]> = {};
     
-    matches.forEach(match => {
+    matches.forEach((match: any) => {
       // Extract base function name (e.g., "media-monitoring" from "scenario-media-monitoring-cision")
       const nodeId = match.nodeId;
       let baseFunction = nodeId;
       
       // Remove product suffixes
-      const productSuffixes = ['-cision', '-brandwatch', '-smm', '-prn', '-trendkite'];
-      productSuffixes.forEach(suffix => {
+      const productSuffixes = PRODUCT_CODES.map((code: string) => `-${code}`);
+      productSuffixes.forEach((suffix: string) => {
         if (nodeId.endsWith(suffix)) {
           baseFunction = nodeId.slice(0, -suffix.length);
         }
@@ -403,7 +348,7 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
     
     if (bestMatchBase && functionGroups[bestMatchBase].length > 1) {
       // Check if the scores are similar (within 10% of each other)
-      const scores = functionGroups[bestMatchBase].map(m => m.score);
+      const scores = functionGroups[bestMatchBase].map((m: any) => m.score);
       const maxScore = Math.max(...scores);
       const minScore = Math.min(...scores);
       
@@ -427,8 +372,8 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
             matchedNodeLabel: sharedNode.node.label,
             isAmbiguous: true,
             alternativeMatches: functionGroups[bestMatchBase]
-              .filter(m => m.nodeId !== sharedNode.nodeId)
-              .map(m => ({
+              .filter((m: any) => m.nodeId !== sharedNode.nodeId)
+              .map((m: any) => ({
                 nodeId: m.nodeId,
                 label: m.node.label,
                 score: m.score
@@ -446,7 +391,7 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
     matchConfidence: bestMatch.score,
     matchedNodeLabel: bestMatch.node.label,
     isAmbiguous: isAmbiguous,
-    alternativeMatches: matches.slice(1, 4).map(m => ({  // Only top 3 alternatives
+    alternativeMatches: matches.slice(1, 4).map((m: any) => ({  // Only top 3 alternatives
       nodeId: m.nodeId,
       label: m.node.label,
       score: m.score

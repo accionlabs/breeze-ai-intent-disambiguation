@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserContext } from '../config/functionalHierarchy';
+import { UserContext, getProductColor } from '../config';
 import { RecentAction } from '../sections/IntentDisambiguationSection';
 
 interface UserContextBarProps {
@@ -24,19 +24,6 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
     return `${hours}h ago`;
   };
 
-  const getProductColor = (product: string) => {
-    const colors: Record<string, string> = {
-      bcr: '#f9a825',
-      smm: '#1976d2',
-      cision: '#ef6c00',
-      prn: '#7b1fa2',
-      trendkite: '#00897b',
-      brandwatch: '#e91e63',
-      'n/a': '#999'
-    };
-    return colors[product] || '#666';
-  };
-
   // Calculate dynamic product usage from recent actions
   const calculateProductUsage = () => {
     const productCounts: Record<string, number> = {};
@@ -44,7 +31,7 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
     
     // Count product usage from recent actions
     recentActions.forEach(action => {
-      const product = action.product.toLowerCase();
+      const product = action.product; // Already lowercase
       if (product !== 'n/a') {
         productCounts[product] = (productCounts[product] || 0) + 1;
         total++;
@@ -189,8 +176,7 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
       </div>
 
       {/* Recent History Timeline */}
-      {(recentActions.length > 0 || context.history.length > 0) && (
-        <div style={{ 
+      <div style={{ 
           marginTop: 12,
           paddingTop: 12,
           borderTop: '1px solid #e0e0e0'
@@ -207,8 +193,8 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
                                timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :
                                `${Math.floor(timeAgo / 3600)}h ago`;
                 
-                // Get product color
-                const productColor = getProductColor(action.product.toLowerCase());
+                // Get product color (product is already lowercase)
+                const productColor = getProductColor(action.product);
                 
                 return (
                   <React.Fragment key={action.id}>
@@ -228,7 +214,7 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
                         fontWeight: 'bold',
                         marginBottom: 2
                       }}>
-                        {action.product}
+                        {action.product.toUpperCase()}
                       </div>
                       <div style={{ 
                         color: '#666', 
@@ -251,42 +237,8 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
                   </React.Fragment>
                 );
               })
-            ) : (
-              // Fallback to static history if no dynamic actions
-              context.history.slice(-5).map((item, index) => (
-                <React.Fragment key={index}>
-                  <div style={{
-                    padding: '4px 10px',
-                    background: 'white',
-                    border: `1px solid ${getProductColor(item.product)}`,
-                    borderRadius: 6,
-                    fontSize: 11,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    minWidth: 80
-                  }}>
-                    <div style={{ 
-                      color: getProductColor(item.product),
-                      fontWeight: 'bold',
-                      marginBottom: 2
-                    }}>
-                      {item.product.toUpperCase()}
-                    </div>
-                    <div style={{ color: '#666', fontSize: 10 }}>
-                      {item.action}
-                    </div>
-                    <div style={{ color: '#999', fontSize: 9, marginTop: 2 }}>
-                      {formatTimestamp(item.timestamp)}
-                    </div>
-                  </div>
-                  {index < context.history.length - 1 && (
-                    <div style={{ color: '#ccc', fontSize: 16 }}>→</div>
-                  )}
-                </React.Fragment>
-              ))
-            )}
-            {recentActions.length === 0 && context.history.length === 0 && (
+            ) : null}
+            {recentActions.length === 0 && (
               <div style={{ 
                 color: '#999', 
                 fontSize: 11, 
@@ -297,7 +249,6 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
             )}
           </div>
         </div>
-      )}
 
     </div>
   );

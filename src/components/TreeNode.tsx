@@ -1,5 +1,5 @@
 import React from 'react';
-import { FunctionalNode, LEVEL_COLORS } from '../config/functionalHierarchy';
+import { FunctionalNode, LEVEL_COLORS } from '../config';
 
 export interface TreeNodeProps {
   nodeId: string;

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { UserIntent, LEVEL_COLORS, FUNCTIONAL_NODES } from '../config/functionalHierarchy';
+import React from 'react';
+import { UserIntent, LEVEL_COLORS } from '../config';
 import IntentInput from './IntentInput';
 import { GeneratedIntent } from '../utils/intentMatcher';
 

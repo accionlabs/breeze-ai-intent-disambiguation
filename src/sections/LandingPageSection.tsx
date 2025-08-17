@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import DomainCards from '../components/DomainCards';
 
 // Component for numbered feature items
 const FeatureItem: React.FC<{ number: string; title: string; description: string }> = ({ number, title, description }) => (
@@ -54,9 +54,11 @@ const ExampleSection: React.FC<{ title: string; steps: string[] }> = ({ title, s
   </div>
 );
 
-const LandingPageSection: React.FC = () => {
-  const navigate = useNavigate();
-  
+interface LandingPageSectionProps {
+  onDomainSelect: (domainId: string) => void;
+}
+
+const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect }) => {
   return (
     <div style={{
       display: 'flex',
@@ -79,7 +81,7 @@ const LandingPageSection: React.FC = () => {
           Breeze.AI Semantic Engineering
         </h1>
         <h2 style={{ fontSize: 24, marginBottom: 20, opacity: 0.9, fontWeight: 'normal' }}>
-          Intent Disambiguation Demo
+          Multi-Domain Intent Disambiguation Platform
         </h2>
         <p style={{ fontSize: 18, opacity: 0.95, maxWidth: 900, margin: '0 auto 20px' }}>
           This demonstration showcases how Accion's Breeze.AI Semantic Engineering Methodology 
@@ -439,66 +441,8 @@ const LandingPageSection: React.FC = () => {
         </ul>
       </div>
 
-      {/* Call to Action */}
-      <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: 16,
-        padding: 40,
-        textAlign: 'center',
-        boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)'
-      }}>
-        <h2 style={{ color: 'white', fontSize: 28, marginBottom: 15 }}>
-          Ready to Experience Semantic Engineering?
-        </h2>
-        <p style={{ 
-          color: 'white', 
-          fontSize: 16, 
-          opacity: 0.95, 
-          maxWidth: 600, 
-          margin: '0 auto 30px' 
-        }}>
-          Launch the interactive demo to see how AI-powered intent disambiguation 
-          transforms ambiguous user requests into precise, actionable outcomes.
-        </p>
-        <button
-          onClick={() => navigate('/intent-disambiguation')}
-          style={{
-            padding: '16px 48px',
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#667eea',
-            background: 'white',
-            border: 'none',
-            borderRadius: 30,
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-            transition: 'all 0.3s ease',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-          }}
-        >
-          <span>🚀</span>
-          Start Interactive Demo
-          <span style={{ marginLeft: 5 }}>→</span>
-        </button>
-        <div style={{ 
-          marginTop: 15, 
-          color: 'white', 
-          fontSize: 13, 
-          opacity: 0.8 
-        }}>
-          No setup required • Works in your browser • See results instantly
-        </div>
-      </div>
+      {/* Domain Selection - Call to Action */}
+      <DomainCards onDomainSelect={onDomainSelect} />
     </div>
   );
 };

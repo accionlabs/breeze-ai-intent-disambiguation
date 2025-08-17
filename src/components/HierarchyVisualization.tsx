@@ -1,15 +1,13 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { 
   FunctionalNode, 
-  FUNCTIONAL_NODES, 
-  FUNCTIONAL_GRAPH,
-  graphOps,
-  LEVEL_COLORS,
-  PRODUCT_COLORS,
   UserContext,
   Resolution,
-  HierarchyLevel
-} from '../config/functionalHierarchy';
+  HierarchyLevel,
+  LEVEL_COLORS,
+  LAYOUT
+} from '../config';
+import type { NodeMetadata } from '../utils/graphModel';
 import TreeNode from './TreeNode';
 
 export type ExpansionMode = 'single' | 'multiple';
@@ -18,13 +16,14 @@ interface HierarchyVisualizationProps {
   selectedIntent?: string;
   entryNode?: string;
   resolution?: Resolution;
-  userContext: UserContext;
+  userContext?: UserContext;
   showContext: boolean;
   expansionMode?: ExpansionMode; // Control whether multiple siblings can be expanded
   showOverlaps?: boolean; // Show overlap indicators on duplicate nodes
   showRationalized?: boolean; // Show rationalized/unified nodes
   showWorkflows?: boolean; // Show cross-product workflow nodes
   recentActions?: any[]; // Recent actions for fallback resolution
+  domainConfig?: any; // Domain-specific configuration
 }
 
 interface NodePosition {
@@ -44,8 +43,16 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   showOverlaps = false, // Default to not showing overlap indicators
   showRationalized = true, // Default to showing rationalized state
   showWorkflows = false, // Default to not showing workflows
-  recentActions = []
+  recentActions = [],
+  domainConfig
 }) => {
+  // Get domain-specific values or fallback to imported defaults
+  const FUNCTIONAL_NODES = domainConfig?.FUNCTIONAL_NODES || require('../config').FUNCTIONAL_NODES;
+  const FUNCTIONAL_GRAPH = domainConfig?.FUNCTIONAL_GRAPH || require('../config').FUNCTIONAL_GRAPH;
+  const graphOps = domainConfig?.graphOps || require('../config').graphOps;
+  const PRODUCT_COLORS = domainConfig?.PRODUCT_COLORS || require('../config').PRODUCT_COLORS;
+  const DUPLICATE_NODES = domainConfig?.DUPLICATE_NODES || require('../config').DUPLICATE_NODES;
+  const SHARED_NODES = domainConfig?.SHARED_NODES || require('../config').SHARED_NODES;
   // Use the most recent action's resolution if there's no selected intent
   // But only if a recent action is actually selected (not deselected by user)
   const selectedRecentAction = recentActions.length > 0 ? recentActions[0] : null;
@@ -76,7 +83,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           
           // Find all ancestors of the last expanded node that are expanded
           const ancestors = graphOps.getAncestors(lastExpandedNode);
-          ancestors.forEach(ancestorId => {
+          ancestors.forEach((ancestorId: string) => {
             if (prev.has(ancestorId)) {
               newSet.add(ancestorId);
             }
@@ -93,7 +100,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
             if (parents.length === 0) break;
             
             // Find which parent is expanded
-            const expandedParent = parents.find(p => prev.has(p));
+            const expandedParent = parents.find((p: string) => prev.has(p));
             if (expandedParent) {
               pathToLastNode.add(expandedParent);
               currentNode = expandedParent;
@@ -103,7 +110,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           }
           
           // Now only keep nodes that are in the path to the last expanded node
-          prev.forEach(nodeId => {
+          prev.forEach((nodeId: string) => {
             if (pathToLastNode.has(nodeId)) {
               newSet.add(nodeId);
             }
@@ -112,7 +119,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           // If last expanded node is no longer expanded, fall back to keeping first of each sibling group
           const nodesByParent = new Map<string | null, string[]>();
           
-          prev.forEach(nodeId => {
+          prev.forEach((nodeId: string) => {
             const parents = graphOps.getParents(nodeId);
             const parentKey = parents.length > 0 ? parents[0] : null;
             
@@ -122,7 +129,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
             nodesByParent.get(parentKey)!.push(nodeId);
           });
           
-          nodesByParent.forEach((children, parentKey) => {
+          nodesByParent.forEach((children: string[], parentKey: string | null) => {
             if (children.length > 0) {
               children.sort();
               newSet.add(children[0]);
@@ -153,9 +160,9 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     // Use the new graph model to get all ancestors for connectivity
     // This ensures we have a complete tree structure from root to leaves
     const allNodesInPath = Array.from(matched);
-    allNodesInPath.forEach(nodeId => {
+    allNodesInPath.forEach((nodeId: string) => {
       const ancestors = graphOps.getAncestors(nodeId);
-      ancestors.forEach(ancestorId => matched.add(ancestorId));
+      ancestors.forEach((ancestorId: string) => matched.add(ancestorId));
     });
     
     return matched;
@@ -172,11 +179,11 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       const ancestors = graphOps.getAncestors(effectiveEntryNode);
       
       // Add all ancestors that are in the matched path
-      ancestors.forEach(ancestorId => {
+      ancestors.forEach((ancestorId: string) => {
         if (matchedNodes.has(ancestorId)) {
           // Check if this ancestor has matched children that need to be shown
           const children = graphOps.getChildren(ancestorId);
-          if (children.some(childId => matchedNodes.has(childId))) {
+          if (children.some((childId: string) => matchedNodes.has(childId))) {
             nodesToExpand.add(ancestorId);
           }
         }
@@ -184,7 +191,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       
       // Expand entry node if it has children in the matched path
       const entryNodeChildren = graphOps.getChildren(effectiveEntryNode);
-      if (entryNodeChildren.some(childId => matchedNodes.has(childId))) {
+      if (entryNodeChildren.some((childId: string) => matchedNodes.has(childId))) {
         nodesToExpand.add(effectiveEntryNode);
       }
       
@@ -192,7 +199,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       if (effectiveResolution) {
         effectiveResolution.traversalPath.downward.forEach((nodeId: string) => {
           const children = graphOps.getChildren(nodeId);
-          if (children.some(childId => matchedNodes.has(childId))) {
+          if (children.some((childId: string) => matchedNodes.has(childId))) {
             nodesToExpand.add(nodeId);
           }
         });
@@ -207,45 +214,17 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     
     // Then, handle overlaps if showOverlaps is ON and no intent is selected
     else if (showOverlaps) {
-      // Use the same lists that are used for showing dashed borders
-      const duplicateNodes = [
-        'scenario-media-monitoring-cision',
-        'scenario-media-monitoring-brandwatch', 
-        'scenario-media-monitoring-smm',
-        'step-social-monitoring-cision',
-        'step-social-monitoring-brandwatch',
-        'step-social-monitoring-smm',
-        'step-track-coverage-cision',
-        'step-analyze-media-sentiment-cision',
-        'step-track-social-brandwatch',
-        'step-analyze-trends-brandwatch',
-        'step-track-mentions-smm',
-        'step-monitor-engagement-smm',
-        'action-track-social-cision',
-        'action-basic-sentiment-cision',
-        'action-track-social-brandwatch',
-        'action-deep-sentiment-brandwatch',
-        'action-trend-analysis-brandwatch',
-        'action-track-social-smm',
-        'action-realtime-track-smm',
-        'action-engagement-metrics-smm'
-      ];
-      
-      const sharedNodes = [
-        'scenario-media-monitoring-shared',
-        'step-social-monitoring-shared'
-      ];
-      
+      // Use the imported lists from config
       // Determine which nodes to use based on rationalization state
-      const overlappingNodes = showRationalized ? sharedNodes : duplicateNodes;
+      const overlappingNodes = showRationalized ? SHARED_NODES : DUPLICATE_NODES;
       
       // For each overlapping node, expand its parent and ancestors
-      overlappingNodes.forEach(nodeId => {
+      overlappingNodes.forEach((nodeId: string) => {
         // Only process if this node exists
         if (FUNCTIONAL_NODES[nodeId]) {
           // Get immediate parents
           const parents = graphOps.getParents(nodeId);
-          parents.forEach(parentId => {
+          parents.forEach((parentId: string) => {
             // Expand the parent
             nodesToExpand.add(parentId);
             
@@ -283,43 +262,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       
       // Filter nodes based on rationalized state
       // Only filter specific duplicate nodes that have shared alternatives
-      const duplicateNodes = [
-        'scenario-media-monitoring-cision',
-        'scenario-media-monitoring-brandwatch', 
-        'scenario-media-monitoring-smm',
-        'step-social-monitoring-cision',
-        'step-social-monitoring-brandwatch',
-        'step-social-monitoring-smm',
-        'step-track-coverage-cision',
-        'step-analyze-media-sentiment-cision',
-        'step-track-social-brandwatch',
-        'step-analyze-trends-brandwatch',
-        'step-track-mentions-smm',
-        'step-monitor-engagement-smm',
-        'action-track-social-cision',
-        'action-basic-sentiment-cision',
-        'action-track-social-brandwatch',
-        'action-deep-sentiment-brandwatch',
-        'action-trend-analysis-brandwatch',
-        'action-track-social-smm',
-        'action-realtime-track-smm',
-        'action-engagement-metrics-smm',
-        'action-conversation-tracking',
-        'action-influencer-tracking',
-        'action-trend-detection',
-        'action-pattern-analysis',
-        'action-mention-monitoring',
-        'action-hashtag-tracking',
-        'action-engagement-tracking',
-        'action-response-metrics'
-      ];
-      
-      const sharedNodes = [
-        'scenario-media-monitoring-shared',
-        'step-social-monitoring-shared'
-        // The shared scenario now directly uses the original steps and actions
-        // so we don't need separate shared versions of those
-      ];
+      // Using imported constants from config
       
       // Filter workflow nodes based on showWorkflows toggle
       if (node.level === 'workflow' && !showWorkflows) {
@@ -329,10 +272,10 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       // Filter based on independent toggle states
       if (showRationalized) {
         // When rationalized is ON, hide duplicate nodes UNLESS they are descendants of shared nodes
-        if (duplicateNodes.includes(nodeId)) {
+        if (DUPLICATE_NODES.includes(nodeId)) {
           // Check if this duplicate node is a descendant of a shared node
           const ancestors = graphOps.getAncestors(nodeId);
-          const hasSharedAncestor = ancestors.some(ancestorId => sharedNodes.includes(ancestorId));
+          const hasSharedAncestor = ancestors.some((ancestorId: string) => SHARED_NODES.includes(ancestorId));
           
           // If it has a shared ancestor, keep it visible (it's part of the unified structure)
           if (!hasSharedAncestor) {
@@ -341,7 +284,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         }
       } else {
         // When rationalized is OFF, hide shared nodes
-        if (sharedNodes.includes(nodeId)) {
+        if (SHARED_NODES.includes(nodeId)) {
           return;
         }
       }
@@ -357,7 +300,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         // Traverse children, passing whether this node is expanded
         const isThisNodeExpanded = expandedNodes.has(nodeId);
         const children = graphOps.getChildren(nodeId);
-        children.forEach(childId => {
+        children.forEach((childId: string) => {
           dfsCollectVisible(childId, true, isThisNodeExpanded);
         });
       }
@@ -368,32 +311,32 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     
     // When showing overlaps and no intent is selected, only process roots that are expanded
     if (showOverlaps && !selectedIntent) {
-      roots.forEach(rootId => {
+      (roots as string[]).forEach((rootId: string) => {
         // Only make root visible if it's in the expanded set
         if (expandedNodes.has(rootId)) {
           visible.add(rootId);
           const children = graphOps.getChildren(rootId);
-          children.forEach(childId => {
+          children.forEach((childId: string) => {
             dfsCollectVisible(childId, true, true);
           });
         }
       });
     } else if (selectedIntent) {
       // When intent selected, only show roots that match
-      roots.forEach(rootId => {
+      (roots as string[]).forEach((rootId: string) => {
         if (matchedNodes.has(rootId)) {
           dfsCollectVisible(rootId, true, true);
         }
       });
     } else {
       // Default case: show all roots
-      roots.forEach(rootId => {
+      (roots as string[]).forEach((rootId: string) => {
         visible.add(rootId);
         // Only traverse children if this root is expanded
         const isRootExpanded = expandedNodes.has(rootId);
         if (isRootExpanded) {
           const children = graphOps.getChildren(rootId);
-          children.forEach(childId => {
+          children.forEach((childId: string) => {
             dfsCollectVisible(childId, true, true);
           });
         }
@@ -407,12 +350,9 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   const { nodePositions, graphBounds } = useMemo(() => {
     const positions: Record<string, NodePosition> = {};
     
-    // Constants for layout
-    const NODE_WIDTH = 140;
-    const MIN_NODE_SPACING = 30; // Minimum spacing between nodes
+    // Use layout constants from config
+    const { NODE_WIDTH, MIN_NODE_SPACING, MARGIN, LABEL_MARGIN } = LAYOUT;
     const LEVEL_HEIGHT = 100; // Vertical spacing between levels
-    const MARGIN = 50; // Margin around the entire graph
-    const LABEL_MARGIN = 100; // Minimum distance from left edge to first node center (increased for label space)
     
     // Fixed Y positions properly aligned with level labels
     const levelY = {
@@ -445,8 +385,8 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       }
       
       // Only add if visible and not already added
-      if (visibleNodes.has(nodeId) && !nodesByLevel[node.level].includes(nodeId)) {
-        nodesByLevel[node.level].push(nodeId);
+      if (visibleNodes.has(nodeId) && !nodesByLevel[node.level as HierarchyLevel].includes(nodeId)) {
+        nodesByLevel[node.level as HierarchyLevel].push(nodeId);
       }
       
       // For product nodes, only traverse to direct outcome children (not through workflows)
@@ -455,7 +395,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         const children = graphOps.getChildren(nodeId);
         
         // Process only direct outcome children (skip workflows)
-        children.forEach(childId => {
+        children.forEach((childId: string) => {
           const childNode = FUNCTIONAL_GRAPH.nodes[childId];
           if (childNode && childNode.level === 'outcome' && visibleNodes.has(childId)) {
             dfsCollectByLevel(childId);
@@ -464,7 +404,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       } else {
         // For non-product nodes, traverse children normally (but skip workflows)
         const children = graphOps.getChildren(nodeId);
-        children.forEach(childId => {
+        children.forEach((childId: string) => {
           const childNode = FUNCTIONAL_GRAPH.nodes[childId];
           // Skip workflow nodes during traversal
           if (childNode && childNode.level !== 'workflow' && visibleNodes.has(childId)) {
@@ -477,7 +417,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     // Collect all nodes maintaining product-based ordering
     const roots = Array.from(FUNCTIONAL_GRAPH.graph.roots);
     roots.sort(); // Ensure consistent ordering
-    roots.forEach(rootId => {
+    (roots as string[]).forEach((rootId: string) => {
       if (visibleNodes.has(rootId)) {
         dfsCollectByLevel(rootId);
       }
@@ -485,7 +425,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     
     // Collect workflow nodes separately at the end if they're visible
     if (showWorkflows) {
-      visibleNodes.forEach(nodeId => {
+      visibleNodes.forEach((nodeId: string) => {
         const node = FUNCTIONAL_GRAPH.nodes[nodeId];
         if (node && node.level === 'workflow' && !nodesByLevel.workflow.includes(nodeId)) {
           nodesByLevel.workflow.push(nodeId);
@@ -499,7 +439,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     let maxWidth = 0;
     const levelWidths: Record<string, number> = {};
     
-    Object.entries(nodesByLevel).forEach(([level, nodeIds]) => {
+    Object.entries(nodesByLevel).forEach(([level, nodeIds]: [string, string[]]) => {
       if (nodeIds.length === 0) {
         levelWidths[level] = 0;
         return;
@@ -517,7 +457,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     const graphWidth = maxWidth + 2 * MARGIN + LABEL_MARGIN;
 
     // Second pass: position nodes centered within the graph width
-    Object.entries(nodesByLevel).forEach(([level, nodeIds]) => {
+    Object.entries(nodesByLevel).forEach(([level, nodeIds]: [string, string[]]) => {
       if (nodeIds.length === 0) return;
       
       const levelWidth = levelWidths[level];
@@ -530,7 +470,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       const startX = Math.max(LABEL_MARGIN, centeredStartX);
       
       // Position each node in the order they were collected (depth-first)
-      nodeIds.forEach((nodeId, index) => {
+      nodeIds.forEach((nodeId: string, index: number) => {
         const node = FUNCTIONAL_GRAPH.nodes[nodeId];
         if (node) {
           positions[nodeId] = {
@@ -544,7 +484,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     });
 
     // Add positions for hidden nodes (for smooth transitions)
-    Object.keys(FUNCTIONAL_GRAPH.nodes).forEach(nodeId => {
+    Object.keys(FUNCTIONAL_GRAPH.nodes).forEach((nodeId: string) => {
       if (!positions[nodeId]) {
         // Position hidden nodes at their parent's location
         const parents = graphOps.getParents(nodeId);
@@ -571,7 +511,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
 
   // Calculate confidence based on user context
   const getNodeConfidence = (nodeId: string): number => {
-    if (!showContext || !userContext.history.length) return 0.5;
+    if (!showContext || !userContext || !userContext.history.length) return 0.5;
     
     const node = FUNCTIONAL_GRAPH.nodes[nodeId];
     if (!node) return 0.5;
@@ -582,7 +522,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
 
     // Check product preferences
     const nodeProducts = node.products || [];
-    const avgPreference = nodeProducts.reduce((sum, product) => {
+    const avgPreference = nodeProducts.reduce((sum: number, product: string) => {
       return sum + (userContext.patterns.productPreferences[product] || 0);
     }, 0) / Math.max(nodeProducts.length, 1);
 
@@ -743,7 +683,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     
     // Check if this node has any matched children to expand
     const hasMatchedChildren = selectedIntent ? 
-      children.some(childId => matchedNodes.has(childId)) : 
+      children.some((childId: string) => matchedNodes.has(childId)) : 
       true;
     
     if (!hasMatchedChildren) return;
@@ -757,7 +697,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         const removeDescendants = (id: string) => {
           newSet.delete(id);
           const descendants = graphOps.getDescendants(id);
-          descendants.forEach(descId => newSet.delete(descId));
+          descendants.forEach((descId: string) => newSet.delete(descId));
         };
         removeDescendants(nodeId);
       } else {
@@ -775,15 +715,15 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           
           if (parents.length > 0) {
             // If this node has parents, find siblings through parents
-            parents.forEach(parentId => {
+            parents.forEach((parentId: string) => {
               const siblings = graphOps.getChildren(parentId);
-              siblings.forEach(siblingId => {
+              siblings.forEach((siblingId: string) => {
                 if (siblingId !== nodeId) {
                   // Check if this sibling or any of its descendants are expanded
                   const checkExpanded = (id: string): boolean => {
                     if (newSet.has(id)) return true;
                     const descendants = graphOps.getDescendants(id);
-                    return descendants.some(descId => newSet.has(descId));
+                    return descendants.some((descId: string) => newSet.has(descId));
                   };
                   
                   if (checkExpanded(siblingId)) {
@@ -795,12 +735,12 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           } else {
             // This is a root node - find other expanded nodes at same level
             const nodesAtLevel = graphOps.getNodesAtLevel(node.level);
-            nodesAtLevel.forEach(n => {
+            nodesAtLevel.forEach((n: NodeMetadata) => {
               if (n.id !== nodeId && graphOps.getParents(n.id).length === 0) {
                 const checkExpanded = (id: string): boolean => {
                   if (newSet.has(id)) return true;
                   const descendants = graphOps.getDescendants(id);
-                  return descendants.some(descId => newSet.has(descId));
+                  return descendants.some((descId: string) => newSet.has(descId));
                 };
                 
                 if (checkExpanded(n.id)) {
@@ -811,10 +751,10 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           }
           
           // Collapse all peer nodes and their entire subtrees
-          peersToCollapse.forEach(peerId => {
+          peersToCollapse.forEach((peerId: string) => {
             newSet.delete(peerId);
             const descendants = graphOps.getDescendants(peerId);
-            descendants.forEach(descId => newSet.delete(descId));
+            descendants.forEach((descId: string) => newSet.delete(descId));
           });
         }
         // If expansionMode === 'multiple', we don't collapse siblings
@@ -833,13 +773,13 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     const drawnConnections = new Set<string>();
     
     // Only draw connections from expanded nodes to their visible children
-    expandedNodes.forEach(parentId => {
+    expandedNodes.forEach((parentId: string) => {
       if (!visibleNodes.has(parentId)) return;
       
       // Use graph model to get children
       const children = graphOps.getChildren(parentId);
       
-      children.forEach(childId => {
+      children.forEach((childId: string) => {
         if (!visibleNodes.has(childId)) return;
         
         const connectionKey = `${parentId}-${childId}`;
@@ -907,7 +847,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     const children = graphOps.getChildren(nodeId);
     const hasChildren = children.length > 0;
     const hasMatchedChildren = selectedIntent ? 
-      children.some(childId => matchedNodes.has(childId)) : 
+      children.some((childId: string) => matchedNodes.has(childId)) : 
       hasChildren;
     const isHovered = hoveredNode === nodeId;
 
@@ -926,35 +866,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     const nodeData = FUNCTIONAL_GRAPH.nodes[nodeId];
     const isSharedNode = nodeData && nodeData.products && nodeData.products.length > 1;
     
-    // Define lists of duplicate and shared nodes for overlap detection
-    const duplicateNodes = [
-      'scenario-media-monitoring-cision',
-      'scenario-media-monitoring-brandwatch', 
-      'scenario-media-monitoring-smm',
-      'step-social-monitoring-cision',
-      'step-social-monitoring-brandwatch',
-      'step-social-monitoring-smm',
-      'step-track-coverage-cision',
-      'step-analyze-media-sentiment-cision',
-      'step-track-social-brandwatch',
-      'step-analyze-trends-brandwatch',
-      'step-track-mentions-smm',
-      'step-monitor-engagement-smm',
-      'action-track-social-cision',
-      'action-basic-sentiment-cision',
-      'action-track-social-brandwatch',
-      'action-deep-sentiment-brandwatch',
-      'action-trend-analysis-brandwatch',
-      'action-track-social-smm',
-      'action-realtime-track-smm',
-      'action-engagement-metrics-smm'
-    ];
-    
-    const sharedNodes = [
-      'scenario-media-monitoring-shared',
-      'step-social-monitoring-shared'
-      // The shared scenario now directly uses the original steps and actions
-    ];
+    // Use imported lists from config for overlap detection
     
     // For shared nodes, use a gradient or mixed color
     let nodeFillColor = isInPath ? productColor : getLightColor(productColor);
@@ -979,23 +891,23 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     if (showOverlaps) {
       if (showRationalized) {
         // In rationalized mode, show overlap on shared nodes and their entire subtree
-        if (sharedNodes.includes(nodeId)) {
+        if (SHARED_NODES.includes(nodeId)) {
           showOverlapBorder = true;
         } else {
           // Check if this node is a child of a shared node
           const ancestors = graphOps.getAncestors(nodeId);
-          if (ancestors.some(ancestorId => sharedNodes.includes(ancestorId))) {
+          if (ancestors.some((ancestorId: string) => SHARED_NODES.includes(ancestorId))) {
             showOverlapBorder = true;
           }
         }
       } else {
         // In non-rationalized mode, show overlap on duplicate nodes and their entire subtree
-        if (duplicateNodes.includes(nodeId)) {
+        if (DUPLICATE_NODES.includes(nodeId)) {
           showOverlapBorder = true;
         } else {
           // Check if this node is a child of a duplicate node
           const ancestors = graphOps.getAncestors(nodeId);
-          if (ancestors.some(ancestorId => duplicateNodes.includes(ancestorId))) {
+          if (ancestors.some((ancestorId: string) => DUPLICATE_NODES.includes(ancestorId))) {
             showOverlapBorder = true;
           }
         }
@@ -1017,7 +929,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         confidence={confidence}
         showContext={showContext}
         animationPhase={animationPhase}
-        showConfidence={selectedIntent !== undefined && userContext.history.length > 0}
+        showConfidence={selectedIntent !== undefined && userContext && userContext.history.length > 0}
         fillColor={nodeFillColor}
         strokeColor={nodeStrokeColor}
         strokeWidth={strokeWidthOverride}
@@ -1202,16 +1114,16 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           {showRationalized && (() => {
             // Find all visible product nodes
             const productNodes = Object.entries(nodePositions)
-              .filter(([nodeId, pos]) => {
+              .filter(([nodeId, pos]: [string, any]) => {
                 const node = FUNCTIONAL_GRAPH.nodes[nodeId];
                 return node && node.level === 'product' && pos.visible;
               })
-              .map(([_, pos]) => pos);
+              .map(([_, pos]: [string, any]) => pos);
             
             if (productNodes.length > 0) {
               // Calculate bounding box for all product nodes
-              const minX = Math.min(...productNodes.map(p => p.x)) - 85; // Account for node width/2 + padding
-              const maxX = Math.max(...productNodes.map(p => p.x)) + 85;
+              const minX = Math.min(...productNodes.map((p: any) => p.x)) - 85; // Account for node width/2 + padding
+              const maxX = Math.max(...productNodes.map((p: any) => p.x)) + 85;
               const y = productNodes[0].y; // All product nodes have same y
               
               return (
@@ -1249,7 +1161,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           <g>{renderConnections()}</g>
           
           {/* Render nodes on top */}
-          <g>{Object.keys(nodePositions).map(nodeId => renderNode(nodeId))}</g>
+          <g>{Object.keys(nodePositions).map((nodeId: string) => renderNode(nodeId))}</g>
         </g>
       </svg>
 

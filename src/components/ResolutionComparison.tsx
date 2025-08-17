@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Resolution, FUNCTIONAL_NODES, UserContext } from '../config/functionalHierarchy';
+import { Resolution, FUNCTIONAL_NODES, UserContext, DISPLAY_LIMITS, getProductColor } from '../config';
 import { RecentAction } from '../sections/IntentDisambiguationSection';
 import { GeneratedIntent } from '../utils/intentMatcher';
 
 interface ResolutionComparisonProps {
   baseResolution?: Resolution;
   contextualResolution?: Resolution;
-  userContext: UserContext;
+  userContext?: UserContext;
   showContext: boolean;
   selectedIntentText?: string;
   generatedIntent?: GeneratedIntent | null;
@@ -81,16 +81,6 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
   // Only show current resolution if there's no selected recent action
   // If a recent action is selected (even the most recent one), use its stored resolution
   const showCurrentResolution = baseResolution && !selectedRecentAction;
-  const getProductColor = (product: string) => {
-    const colors: Record<string, string> = {
-      bcr: '#f9a825',
-      smm: '#1976d2',
-      cision: '#ef6c00',
-      prn: '#7b1fa2',
-      trendkite: '#00897b'
-    };
-    return colors[product] || '#666';
-  };
 
   const renderResolution = (resolution: Resolution | undefined, title: string, isContextual: boolean) => {
     if (!resolution) {
@@ -456,7 +446,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
               }}>
                 Other considered matches:
               </div>
-              {generatedIntent.alternativeMatches.slice(0, 3).map((alt, idx) => (
+              {generatedIntent.alternativeMatches.slice(0, DISPLAY_LIMITS.ALTERNATIVE_MATCHES_DISPLAY).map((alt, idx) => (
                 <div key={idx} style={{ 
                   marginLeft: 10, 
                   fontSize: 10,
@@ -626,7 +616,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
             maxHeight: 200,
             overflowY: 'auto'
           }}>
-            {recentActions.slice(0, 5).map((action, index) => {
+            {recentActions.slice(0, DISPLAY_LIMITS.RECENT_INTENTS_DISPLAY).map((action, index) => {
               const timeAgo = Math.floor((Date.now() - action.timestamp.getTime()) / 1000);
               const timeStr = timeAgo < 60 ? `${timeAgo}s ago` : 
                              timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :

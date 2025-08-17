@@ -4,14 +4,14 @@ import IntentExamples from '../components/IntentExamples';
 import HierarchyVisualization, { ExpansionMode } from '../components/HierarchyVisualization';
 import ResolutionComparison from '../components/ResolutionComparison';
 import { GeneratedIntent, getTopMatches } from '../utils/intentMatcher';
+import { useDomainConfig } from '../hooks/useDomainConfig';
 import {
-  USER_INTENTS,
-  SAMPLE_CONTEXTS,
-  FUNCTIONAL_NODES,
   Resolution,
   UserContext,
-  RATIONALIZED_NODE_ALTERNATIVES
-} from '../config/functionalHierarchy';
+  DISPLAY_LIMITS,
+  UI_LAYOUT,
+  BUTTON_COLORS
+} from '../config';
 
 export interface RecentAction {
   id: string;
@@ -30,8 +30,9 @@ export interface RecentAction {
 }
 
 const IntentDisambiguationSection: React.FC = () => {
+  const domainConfig = useDomainConfig();
   const [selectedIntent, setSelectedIntent] = useState<string | undefined>();
-  const [currentContextId, setCurrentContextId] = useState<string>('marketing-manager');
+  const [currentContextId, setCurrentContextId] = useState<string | null>(null);
   const [showContext, setShowContext] = useState<boolean>(false);
   const [expansionMode, setExpansionMode] = useState<ExpansionMode>('multiple');
   const [showOverlaps, setShowOverlaps] = useState<boolean>(false);
@@ -44,13 +45,28 @@ const IntentDisambiguationSection: React.FC = () => {
   const [generatedIntent, setGeneratedIntent] = useState<GeneratedIntent | null>(null);
   const [lastTrackedIntent, setLastTrackedIntent] = useState<string | undefined>();
 
-  const currentContext = SAMPLE_CONTEXTS[currentContextId];
-
   // Clear selected recent action when graph state changes
   useEffect(() => {
     setSelectedRecentAction(null);
     setGraphStateVersion(prev => prev + 1);
   }, [showRationalized, showWorkflows]);
+
+  // Set initial context based on domain
+  useEffect(() => {
+    if (domainConfig && !currentContextId) {
+      const firstContextId = Object.keys(domainConfig.SAMPLE_CONTEXTS)[0];
+      setCurrentContextId(firstContextId);
+    }
+  }, [domainConfig, currentContextId]);
+
+  // Get config values (with defaults to avoid hooks after return)
+  const USER_INTENTS = domainConfig?.USER_INTENTS || [];
+  const SAMPLE_CONTEXTS = domainConfig?.SAMPLE_CONTEXTS || {};
+  const FUNCTIONAL_NODES = domainConfig?.FUNCTIONAL_NODES || {};
+  const RATIONALIZED_NODE_ALTERNATIVES = domainConfig?.RATIONALIZED_NODE_ALTERNATIVES || {};
+  const graphOps = domainConfig?.graphOps || null;
+
+  const currentContext = currentContextId && SAMPLE_CONTEXTS ? SAMPLE_CONTEXTS[currentContextId] : null;
 
   // Calculate resolution based on selected intent and context
   const { baseResolution, contextualResolution } = useMemo(() => {
@@ -61,24 +77,24 @@ const IntentDisambiguationSection: React.FC = () => {
     if (generatedIntent && selectedIntent === generatedIntent.id) {
       entryNode = generatedIntent.entryNode;
     } else if (selectedIntent) {
-      const intent = USER_INTENTS.find(i => i.id === selectedIntent);
+      const intent = USER_INTENTS.find((i: any) => i.id === selectedIntent);
       entryNode = intent?.entryNode;
     }
     
     if (!entryNode) return { baseResolution: undefined, contextualResolution: undefined };
 
     // Get recent actions for current persona - filter for successful ones only for context
-    const currentPersonaRecentActions = recentActionsByPersona[currentContextId] || [];
-    const successfulRecentActions = currentPersonaRecentActions.filter(action => action.success);
+    const currentPersonaRecentActions = currentContextId ? (recentActionsByPersona[currentContextId] || []) : [];
+    const successfulRecentActions = currentPersonaRecentActions.filter((action: any) => action.success);
     
     // Base resolution (no context) - don't pass recent actions
-    const baseRes = calculateResolution(entryNode, null, showRationalized, showWorkflows, []);
+    const baseRes = calculateResolution(entryNode, null, showRationalized, showWorkflows, [], FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps);
     
     // Contextual resolution - pass only successful recent actions when context is on
-    const contextRes = calculateResolution(entryNode, currentContext, showRationalized, showWorkflows, successfulRecentActions);
+    const contextRes = calculateResolution(entryNode, currentContext, showRationalized, showWorkflows, successfulRecentActions, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps);
 
     return { baseResolution: baseRes, contextualResolution: contextRes };
-  }, [selectedIntent, generatedIntent, currentContext, showRationalized, showWorkflows, currentContextId, recentActionsByPersona]);
+  }, [selectedIntent, generatedIntent, currentContext, showRationalized, showWorkflows, currentContextId, recentActionsByPersona, USER_INTENTS, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps]);
 
   // Get the selected intent data (either from predefined or generated)
   const selectedIntentData = useMemo(() => {
@@ -93,7 +109,7 @@ const IntentDisambiguationSection: React.FC = () => {
         ambiguous: false
       };
     }
-    return USER_INTENTS.find(i => i.id === selectedIntent);
+    return USER_INTENTS.find((i: any) => i.id === selectedIntent);
   }, [selectedIntent, generatedIntent]);
 
   // Track recent action when intent is selected
@@ -113,7 +129,7 @@ const IntentDisambiguationSection: React.FC = () => {
       if (generatedIntent && selectedIntent === generatedIntent.id) {
         intentData = generatedIntent;
       } else {
-        intentData = USER_INTENTS.find(i => i.id === selectedIntent);
+        intentData = USER_INTENTS.find((i: any) => i.id === selectedIntent);
       }
       
       if (intentData) {
@@ -131,16 +147,20 @@ const IntentDisambiguationSection: React.FC = () => {
           for (const nodeId of activeResolution.traversalPath.upward) {
             const node = FUNCTIONAL_NODES[nodeId];
             if (node && node.level === 'product') {
-              product = node.label;
+              // Extract product code from node ID (e.g., "product-cision" -> "cision")
+              const nodeIdParts = nodeId.split('-');
+              if (nodeIdParts.length >= 2) {
+                product = nodeIdParts[nodeIdParts.length - 1].toLowerCase();
+              }
               break;
             }
           }
           
           // If no product found in upward path, check productActivation
           if (product === 'N/A' && activeResolution.productActivation.length > 0) {
-            const primaryProduct = activeResolution.productActivation.find(p => p.priority === 'primary');
+            const primaryProduct = activeResolution.productActivation.find((p: any) => p.priority === 'primary');
             if (primaryProduct) {
-              product = primaryProduct.product.toUpperCase();
+              product = primaryProduct.product.toLowerCase();  // Store as lowercase to match PRODUCT_CODES
             }
           }
           
@@ -154,7 +174,7 @@ const IntentDisambiguationSection: React.FC = () => {
             for (const nodeId of allPathNodes) {
               const node = FUNCTIONAL_NODES[nodeId];
               if (node && node.products && node.products.length > 0) {
-                product = node.products[0].toUpperCase();
+                product = node.products[0].toLowerCase();  // Store as lowercase to match PRODUCT_CODES
                 break;
               }
             }
@@ -187,7 +207,7 @@ const IntentDisambiguationSection: React.FC = () => {
         // Create the action record (always, for display in recent intents)
         const newAction: RecentAction = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          persona: currentContext.profile.role,
+          persona: currentContext?.profile.role || 'Unknown',
           intent: intentData.text,
           product: product,
           outcome: outcome,
@@ -203,14 +223,16 @@ const IntentDisambiguationSection: React.FC = () => {
         
         // Always add to recent actions (for display in recent intents panel)
         // The success flag will indicate if it was successful or not
-        setRecentActionsByPersona(prev => {
-          const personaActions = prev[currentContextId] || [];
-          const updated = [newAction, ...personaActions].slice(0, 10);
-          return {
-            ...prev,
-            [currentContextId]: updated
-          };
-        });
+        if (currentContextId) {
+          setRecentActionsByPersona(prev => {
+            const personaActions = prev[currentContextId] || [];
+            const updated = [newAction, ...personaActions].slice(0, DISPLAY_LIMITS.RECENT_ACTIONS_PER_PERSONA);
+            return {
+              ...prev,
+              [currentContextId]: updated
+            };
+          });
+        }
         
         // Mark this intent as tracked regardless of success
         setLastTrackedIntent(selectedIntent);
@@ -221,6 +243,11 @@ const IntentDisambiguationSection: React.FC = () => {
       }
     }
   }, [selectedIntent, generatedIntent, baseResolution, contextualResolution, currentContext, currentContextId, showRationalized, showWorkflows, showContext, lastTrackedIntent]);
+
+  // Check if domain config is loaded
+  if (!domainConfig) {
+    return <div style={{ padding: 20, textAlign: 'center' }}>Loading domain configuration...</div>;
+  }
 
   const handleIntentSelect = (intentId: string) => {
     setSelectedIntent(selectedIntent === intentId ? undefined : intentId);
@@ -248,22 +275,24 @@ const IntentDisambiguationSection: React.FC = () => {
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column',
-      height: 'calc(100vh - 140px)',
+      height: UI_LAYOUT.MAIN_CONTENT_HEIGHT,
       overflow: 'hidden'
     }}>
       {/* User Context Bar */}
-      <UserContextBar
-        context={currentContext}
-        availableContexts={SAMPLE_CONTEXTS}
-        onContextChange={handleContextChange}
-        currentContextId={currentContextId}
-        recentActions={(recentActionsByPersona[currentContextId] || []).filter(action => action.success)}
-      />
+      {currentContext && currentContextId && (
+        <UserContextBar
+          context={currentContext}
+          availableContexts={SAMPLE_CONTEXTS}
+          onContextChange={handleContextChange}
+          currentContextId={currentContextId}
+          recentActions={(recentActionsByPersona[currentContextId] || []).filter((action: any) => action.success)}
+        />
+      )}
 
       {/* Main Content */}
       <div style={{ 
         display: 'flex', 
-        gap: 20, 
+        gap: UI_LAYOUT.MAIN_CONTENT_GAP, 
         flex: 1,
         overflow: 'hidden'
       }}>
@@ -282,20 +311,21 @@ const IntentDisambiguationSection: React.FC = () => {
           selectedIntent={selectedIntent}
           entryNode={selectedIntentData?.entryNode}
           resolution={showContext ? contextualResolution : baseResolution}
-          userContext={currentContext}
+          userContext={currentContext || undefined}
           showContext={showContext}
           expansionMode={expansionMode}
           showOverlaps={showOverlaps}
           showRationalized={showRationalized}
           showWorkflows={showWorkflows}
           recentActions={selectedRecentAction ? [selectedRecentAction] : []}
+          domainConfig={domainConfig}
         />
 
         {/* Resolution Comparison Panel */}
         <ResolutionComparison
           baseResolution={baseResolution}
           contextualResolution={contextualResolution}
-          userContext={currentContext}
+          userContext={currentContext || undefined}
           showContext={showContext}
           selectedIntentText={selectedIntentData?.text}
           generatedIntent={generatedIntent && selectedIntent === generatedIntent.id ? generatedIntent : null}
@@ -321,30 +351,30 @@ const IntentDisambiguationSection: React.FC = () => {
       {/* Control Buttons */}
       <div style={{
         position: 'fixed',
-        bottom: 30,
+        bottom: UI_LAYOUT.CONTROL_PANEL_BOTTOM,
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: 10,
+        gap: UI_LAYOUT.CONTROL_PANEL_GAP,
         alignItems: 'center'
       }}>
         {/* Show Overlaps Toggle */}
         <button
           onClick={() => setShowOverlaps(!showOverlaps)}
           style={{
-            padding: '10px 20px',
-            background: showOverlaps ? '#f97316' : '#6b7280',
+            padding: UI_LAYOUT.BUTTON_PADDING,
+            background: showOverlaps ? BUTTON_COLORS.OVERLAPS.ACTIVE : BUTTON_COLORS.OVERLAPS.INACTIVE,
             color: 'white',
             border: 'none',
-            borderRadius: 20,
-            fontSize: 12,
+            borderRadius: UI_LAYOUT.BUTTON_BORDER_RADIUS,
+            fontSize: UI_LAYOUT.BUTTON_FONT_SIZE,
             fontWeight: 'bold',
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            transition: 'all 0.3s ease',
+            boxShadow: UI_LAYOUT.BUTTON_BOX_SHADOW,
+            transition: UI_LAYOUT.BUTTON_TRANSITION,
             display: 'flex',
             alignItems: 'center',
-            gap: 6
+            gap: UI_LAYOUT.BUTTON_GAP
           }}
           title={showOverlaps 
             ? 'Hiding overlap indicators'
@@ -365,19 +395,19 @@ const IntentDisambiguationSection: React.FC = () => {
             }
           }}
           style={{
-            padding: '10px 20px',
-            background: showRationalized ? '#9333ea' : '#6b7280',
+            padding: UI_LAYOUT.BUTTON_PADDING,
+            background: showRationalized ? BUTTON_COLORS.RATIONALIZED.ACTIVE : BUTTON_COLORS.RATIONALIZED.INACTIVE,
             color: 'white',
             border: 'none',
-            borderRadius: 20,
-            fontSize: 12,
+            borderRadius: UI_LAYOUT.BUTTON_BORDER_RADIUS,
+            fontSize: UI_LAYOUT.BUTTON_FONT_SIZE,
             fontWeight: 'bold',
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            transition: 'all 0.3s ease',
+            boxShadow: UI_LAYOUT.BUTTON_BOX_SHADOW,
+            transition: UI_LAYOUT.BUTTON_TRANSITION,
             display: 'flex',
             alignItems: 'center',
-            gap: 6
+            gap: UI_LAYOUT.BUTTON_GAP
           }}
           title={showRationalized 
             ? 'Hide rationalized/unified nodes'
@@ -393,7 +423,7 @@ const IntentDisambiguationSection: React.FC = () => {
           onClick={() => setShowWorkflows(!showWorkflows)}
           disabled={!showRationalized}
           style={{
-            padding: '10px 20px',
+            padding: UI_LAYOUT.BUTTON_PADDING,
             background: !showRationalized ? '#d1d5db' : (showWorkflows ? '#ec4899' : '#6b7280'),
             color: !showRationalized ? '#9ca3af' : 'white',
             border: 'none',
@@ -423,19 +453,19 @@ const IntentDisambiguationSection: React.FC = () => {
         <button
           onClick={() => setExpansionMode(expansionMode === 'single' ? 'multiple' : 'single')}
           style={{
-            padding: '10px 20px',
+            padding: UI_LAYOUT.BUTTON_PADDING,
             background: expansionMode === 'multiple' ? '#10b981' : '#f59e0b',
             color: 'white',
             border: 'none',
-            borderRadius: 20,
-            fontSize: 12,
+            borderRadius: UI_LAYOUT.BUTTON_BORDER_RADIUS,
+            fontSize: UI_LAYOUT.BUTTON_FONT_SIZE,
             fontWeight: 'bold',
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            transition: 'all 0.3s ease',
+            boxShadow: UI_LAYOUT.BUTTON_BOX_SHADOW,
+            transition: UI_LAYOUT.BUTTON_TRANSITION,
             display: 'flex',
             alignItems: 'center',
-            gap: 6
+            gap: UI_LAYOUT.BUTTON_GAP
           }}
           title={expansionMode === 'single' 
             ? 'Single expansion mode: Only one sibling can be expanded at a time'
@@ -450,7 +480,7 @@ const IntentDisambiguationSection: React.FC = () => {
         <button
           onClick={toggleContext}
           style={{
-            padding: '10px 20px',
+            padding: UI_LAYOUT.BUTTON_PADDING,
             background: showContext ? '#667eea' : '#999',
             color: 'white',
             border: 'none',
@@ -475,15 +505,11 @@ function calculateResolution(
   context: UserContext | null,
   showRationalized: boolean,
   showWorkflows: boolean,
-  recentActions: RecentAction[] = []
+  recentActions: RecentAction[] = [],
+  FUNCTIONAL_NODES: Record<string, any>,
+  RATIONALIZED_NODE_ALTERNATIVES: Record<string, Record<string, string>>,
+  graphOps: any
 ): Resolution {
-  // Product name normalization mapping
-  const productNormalization: Record<string, string> = {
-    'cisionone': 'cision',
-    'cision one': 'cision',
-    'bcr': 'brandwatch',
-    'brandwatch consumer research': 'brandwatch'
-  };
   
   // First check if this is a shared/rationalized node that requires rationalization to be on
   if (entryNodeId.includes('-shared') && !showRationalized) {
@@ -496,21 +522,12 @@ function calculateResolution(
         // Count product usage in recent SUCCESSFUL actions (already filtered)
         const productWeights: Record<string, number> = {};
         
-        recentActions.forEach((action) => {
+        recentActions.forEach((action: any) => {
           const product = action.product.toLowerCase();
           
-          // Normalize product names
-          const productNormalization: Record<string, string> = {
-            'cisionone': 'cision',
-            'cision one': 'cision',
-            'bcr': 'brandwatch',
-            'brandwatch consumer research': 'brandwatch'
-          };
-          
-          const normalizedProduct = productNormalization[product] || product;
-          
-          if (normalizedProduct !== 'n/a') {
-            productWeights[normalizedProduct] = (productWeights[normalizedProduct] || 0) + 1;
+          // Use product directly since we've standardized product codes
+          if (product !== 'n/a') {
+            productWeights[product] = (productWeights[product] || 0) + 1;
           }
         });
         
@@ -532,7 +549,7 @@ function calculateResolution(
           
           if (specificNode) {
             // Recursively call with the specific node
-            const resolution = calculateResolution(specificNodeId, context, showRationalized, showWorkflows, recentActions);
+            const resolution = calculateResolution(specificNodeId, context, showRationalized, showWorkflows, recentActions, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps);
             resolution.reasoning.unshift(`Context-based resolution: Selected ${bestProduct.toUpperCase()} based on recent usage (${maxWeight} recent actions)`);
             return resolution;
           }
@@ -559,7 +576,7 @@ function calculateResolution(
   // Check if the node exists
   if (!entryNode) {
     // Check if there are duplicate nodes when rationalization is off
-    const duplicateNodes = Object.keys(FUNCTIONAL_NODES).filter(nodeId => {
+    const duplicateNodes = Object.keys(FUNCTIONAL_NODES).filter((nodeId: string) => {
       const node = FUNCTIONAL_NODES[nodeId];
       return node && 
              node.label === entryNodeId.split('-').slice(1, -1).join(' ').replace(/\b\w/g, l => l.toUpperCase()) &&
@@ -628,7 +645,7 @@ function calculateResolution(
       
       if (unifiedNode) {
         // Recursively call with the unified node
-        const resolution = calculateResolution(unifiedNodeId, context, showRationalized, showWorkflows);
+        const resolution = calculateResolution(unifiedNodeId, context, showRationalized, showWorkflows, recentActions, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps);
         // Add a note about the mapping in reasoning
         resolution.reasoning.unshift('Intent mapped to unified/rationalized functionality');
         return resolution;
@@ -671,14 +688,14 @@ function calculateResolution(
       
       if (context && context.patterns.productPreferences) {
         // Score each child based on its alignment with product preferences
-        const scoredChildren = node.children.map(childId => {
+        const scoredChildren = node.children.map((childId: string) => {
           const childNode = FUNCTIONAL_NODES[childId];
           if (!childNode) return { id: childId, score: 0 };
           
           // Calculate score based on product alignment
           let score = 0;
           if (childNode.products) {
-            childNode.products.forEach(product => {
+            childNode.products.forEach((product: string) => {
               score += context.patterns.productPreferences[product] || 0;
             });
           }
@@ -687,18 +704,18 @@ function calculateResolution(
         });
         
         // Sort by score and filter based on threshold
-        scoredChildren.sort((a, b) => b.score - a.score);
+        scoredChildren.sort((a: any, b: any) => b.score - a.score);
         
         // For personas with strong preferences, only traverse high-scoring paths
         if (context.profile.role !== 'Marketing Manager' || context.history.length > 0) {
           const threshold = 0.3;
           childrenToTraverse = scoredChildren
-            .filter(child => child.score > threshold || scoredChildren[0].score === 0)
-            .map(child => child.id);
+            .filter((child: any) => child.score > threshold || scoredChildren[0].score === 0)
+            .map((child: any) => child.id);
         }
       }
       
-      childrenToTraverse.forEach(childId => {
+      childrenToTraverse.forEach((childId: string) => {
         downwardPath.push(childId);
         traverseDown(childId);
       });
@@ -710,7 +727,7 @@ function calculateResolution(
   // Apply context if available
   if (context && context.history.length > 0) {
     // Check if entry node matches recent history
-    const recentNodes = context.history.map(h => h.node);
+    const recentNodes = context.history.map((h: any) => h.node);
     if (recentNodes.includes(entryNodeId)) {
       reasoning.push('Intent matches recent user activity');
     }
@@ -719,9 +736,9 @@ function calculateResolution(
     const nodeProducts = entryNode.products || [];
     const preferredProducts = Object.entries(context.patterns.productPreferences)
       .sort(([,a], [,b]) => b - a)
-      .map(([product]) => product);
+      .map(([product]: [string, number]) => product);
     
-    if (nodeProducts.some(p => preferredProducts.includes(p))) {
+    if (nodeProducts.some((p: string) => preferredProducts.includes(p))) {
       reasoning.push(`Aligns with preferred products: ${preferredProducts.slice(0, 2).join(', ')}`);
     }
 
@@ -733,10 +750,10 @@ function calculateResolution(
     // Filter actions based on context
     if (entryNode.level === 'step' && entryNode.children.length > 0) {
       // Prioritize actions based on product preferences
-      const contextualActions = selectedActions.filter(actionId => {
+      const contextualActions = selectedActions.filter((actionId: string) => {
         const action = FUNCTIONAL_NODES[actionId];
         if (!action || !action.products) return false;
-        return action.products.some(p => 
+        return action.products.some((p: string) => 
           (context.patterns.productPreferences[p] || 0) > 0.5
         );
       });
@@ -753,10 +770,10 @@ function calculateResolution(
 
   // Determine product activation
   const productMap: Record<string, Set<string>> = {};
-  selectedActions.forEach(actionId => {
+  selectedActions.forEach((actionId: string) => {
     const action = FUNCTIONAL_NODES[actionId];
     if (action && action.products) {
-      action.products.forEach(product => {
+      action.products.forEach((product: string) => {
         if (!productMap[product]) {
           productMap[product] = new Set();
         }
@@ -765,7 +782,7 @@ function calculateResolution(
     }
   });
 
-  const productActivation = Object.entries(productMap).map(([product, actions], index) => ({
+  const productActivation = Object.entries(productMap).map(([product, actions]: [string, Set<string>], index: number) => ({
     product,
     priority: (index === 0 ? 'primary' : 'secondary') as 'primary' | 'secondary',
     actions: Array.from(actions)
@@ -780,7 +797,7 @@ function calculateResolution(
     });
     
     // Update priorities after sorting
-    productActivation.forEach((activation, index) => {
+    productActivation.forEach((activation: any, index: number) => {
       activation.priority = index === 0 ? 'primary' : 'secondary';
     });
   }
