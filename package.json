@@ -2,7 +2,7 @@
   "name": "nexus-semantic-engineering-approach",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://accionlabs.github.io/nexus-semantic-evolution",
+  "homepage": "https://accionlabs.github.io/breeze-ai-intent-disambiguation",
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.4",
