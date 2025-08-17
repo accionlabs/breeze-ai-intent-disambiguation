@@ -20,16 +20,13 @@ const IntentExamples: React.FC<IntentExamplesProps> = ({
   onGeneratedIntentSelect,
   showRationalized = true
 }) => {
-  const [currentGeneratedIntent, setCurrentGeneratedIntent] = useState<GeneratedIntent | null>(null);
-  
   const handleIntentGenerated = (intent: GeneratedIntent) => {
-    setCurrentGeneratedIntent(intent);
     onGeneratedIntentSelect(intent);
   };
   
   // Clear current generated intent when a new one is being generated
   const handleNewIntentInput = () => {
-    setCurrentGeneratedIntent(null);
+    // No longer needed since we don't track current generated intent
   };
   const getLevelIcon = (level: string) => {
     const icons = {
@@ -64,7 +61,6 @@ const IntentExamples: React.FC<IntentExamplesProps> = ({
       {/* Intent Input Component */}
       <IntentInput 
         onIntentGenerated={handleIntentGenerated}
-        currentGeneratedIntent={currentGeneratedIntent}
         onNewInput={handleNewIntentInput}
         showRationalized={showRationalized}
       />

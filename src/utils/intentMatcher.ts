@@ -11,7 +11,8 @@ const DOMAIN_SYNONYMS: Record<string, string[]> = {
   'brand': ['reputation', 'image', 'company', 'organization', 'business'],
   'report': ['dashboard', 'analytics', 'insights', 'metrics', 'data', 'statistics'],
   'content': ['posts', 'articles', 'stories', 'material', 'copy'],
-  'engagement': ['interaction', 'response', 'participation', 'involvement'],
+  'engagement': ['interaction', 'participation', 'involvement'],
+  'response': ['reply', 'answer', 'feedback', 'reaction'],
   'influence': ['impact', 'reach', 'authority', 'clout'],
   'campaign': ['initiative', 'program', 'effort', 'push'],
   'distribution': ['sharing', 'syndication', 'dissemination', 'broadcast'],
@@ -190,12 +191,16 @@ export function findBestMatches(inputText: string, topN: number = 5): MatchResul
     
     // Track which node tokens have been matched to avoid double-counting
     const usedNodeTokens = new Set<string>();
+    let exactMatches = 0;
+    let stemMatches = 0;
+    let synonymMatches = 0;
     
     // Calculate similarity for each input token
     for (const inputToken of inputTokens) {
       let bestWordScore = 0;
       let bestMatch = '';
       let bestNodeToken = '';
+      let matchType = '';
       
       for (const nodeToken of nodeTokens) {
         // Skip if this node token was already matched
@@ -206,6 +211,16 @@ export function findBestMatches(inputText: string, topN: number = 5): MatchResul
           bestWordScore = similarity;
           bestMatch = nodeToken;
           bestNodeToken = nodeToken;
+          // Determine match type
+          if (inputToken.toLowerCase() === nodeToken.toLowerCase()) {
+            matchType = 'exact';
+          } else if (stem(inputToken) === stem(nodeToken)) {
+            matchType = 'stem';
+          } else if (areSynonyms(inputToken, nodeToken)) {
+            matchType = 'synonym';
+          } else {
+            matchType = 'fuzzy';
+          }
         }
       }
       
@@ -215,27 +230,38 @@ export function findBestMatches(inputText: string, topN: number = 5): MatchResul
         if (bestNodeToken) {
           usedNodeTokens.add(bestNodeToken);
         }
+        // Count match types
+        if (matchType === 'exact') exactMatches++;
+        else if (matchType === 'stem') stemMatches++;
+        else if (matchType === 'synonym') synonymMatches++;
       }
     }
     
     // Calculate base normalized score
     const normalizedScore = totalScore / inputTokens.length;
     
+    // Strong bonus for exact matches over synonyms
+    const exactMatchBonus = (exactMatches / inputTokens.length) * 0.15;
+    
+    // Small penalty for synonym matches to differentiate from exact matches
+    const synonymPenalty = (synonymMatches / inputTokens.length) * -0.05;
+    
     // Bonus for matching multiple words (compound match bonus)
     const matchRatio = matchedWords.length / inputTokens.length;
-    const compoundBonus = matchRatio > 0.5 ? (matchRatio - 0.5) * 0.2 : 0;
+    const compoundBonus = matchRatio > 0.5 ? (matchRatio - 0.5) * 0.1 : 0;
     
-    // Bonus for exact word matches in the same order
+    // Bonus for exact phrase match
     const inputPhrase = inputTokens.join(' ');
     const nodePhrase = nodeTokens.join(' ');
-    const orderBonus = nodePhrase.includes(inputPhrase) ? 0.15 : 0;
+    const orderBonus = nodePhrase.toLowerCase() === inputPhrase.toLowerCase() ? 0.2 : 
+                       nodePhrase.toLowerCase().includes(inputPhrase.toLowerCase()) ? 0.1 : 0;
     
     // Apply level-based boost
     let levelBoost = 0;
     if (node.level === 'action') levelBoost = 0.1;  // Prefer specific actions
     else if (node.level === 'step') levelBoost = 0.05;
     
-    const finalScore = Math.min(1.0, normalizedScore + compoundBonus + orderBonus + levelBoost);
+    const finalScore = Math.min(1.0, normalizedScore + exactMatchBonus + synonymPenalty + compoundBonus + orderBonus + levelBoost);
     
     // Only include nodes with meaningful scores
     if (finalScore > 0.2) {
@@ -273,6 +299,11 @@ export interface GeneratedIntent {
     label: string;
     score: number;
   }>;
+}
+
+// Export the match results for use in resolution
+export function getTopMatches(inputText: string, limit: number = 10): MatchResult[] {
+  return findBestMatches(inputText, limit);
 }
 
 export function generateIntentFromText(inputText: string, showRationalized: boolean = true): GeneratedIntent | null {

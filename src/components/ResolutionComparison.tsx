@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Resolution, FUNCTIONAL_NODES, UserContext } from '../config/functionalHierarchy';
 import { RecentAction } from '../sections/IntentDisambiguationSection';
+import { GeneratedIntent } from '../utils/intentMatcher';
 
 interface ResolutionComparisonProps {
   baseResolution?: Resolution;
@@ -8,6 +9,7 @@ interface ResolutionComparisonProps {
   userContext: UserContext;
   showContext: boolean;
   selectedIntentText?: string;
+  generatedIntent?: GeneratedIntent | null;
   recentActions?: RecentAction[];
   onSelectedRecentIntentChange?: (action: RecentAction | null) => void;
   graphStateVersion?: number;
@@ -23,6 +25,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
   userContext,
   showContext,
   selectedIntentText,
+  generatedIntent,
   recentActions = [],
   onSelectedRecentIntentChange,
   graphStateVersion = 0,
@@ -382,6 +385,103 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
               marginTop: 4
             }}>
               From: {selectedRecentAction.persona}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Show match confidence and alternatives for generated intents */}
+      {generatedIntent && !selectedRecentAction && (
+        <div style={{
+          padding: '10px 12px',
+          background: '#f8f9fa',
+          borderRadius: 6,
+          fontSize: 11,
+          marginBottom: 15,
+          border: '1px solid #e0e0e0'
+        }}>
+          <div style={{ 
+            fontSize: 10, 
+            color: '#999', 
+            marginBottom: 6,
+            textTransform: 'uppercase',
+            fontWeight: 'bold'
+          }}>
+            Match Analysis
+          </div>
+          
+          {/* Primary match */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 8
+          }}>
+            <span style={{
+              padding: '3px 8px',
+              background: generatedIntent.matchConfidence > 0.7 ? '#e8f5e9' :
+                         generatedIntent.matchConfidence > 0.4 ? '#fff3e0' :
+                         '#ffebee',
+              color: generatedIntent.matchConfidence > 0.7 ? '#2e7d32' :
+                     generatedIntent.matchConfidence > 0.4 ? '#e65100' :
+                     '#c62828',
+              borderRadius: 4,
+              fontSize: 10,
+              fontWeight: 'bold',
+              border: `1px solid ${
+                generatedIntent.matchConfidence > 0.7 ? '#81c784' :
+                generatedIntent.matchConfidence > 0.4 ? '#ffb74d' :
+                '#ef5350'
+              }`
+            }}>
+              {Math.round(generatedIntent.matchConfidence * 100)}% confidence
+            </span>
+            <span style={{ fontSize: 11, color: '#333' }}>
+              → {generatedIntent.matchedNodeLabel}
+            </span>
+          </div>
+          
+          {/* Alternative matches */}
+          {generatedIntent.alternativeMatches && generatedIntent.alternativeMatches.length > 0 && (
+            <div style={{
+              marginTop: 8,
+              paddingTop: 8,
+              borderTop: '1px solid #e0e0e0'
+            }}>
+              <div style={{ 
+                fontSize: 10, 
+                color: '#666', 
+                marginBottom: 4,
+                fontStyle: 'italic'
+              }}>
+                Other considered matches:
+              </div>
+              {generatedIntent.alternativeMatches.slice(0, 3).map((alt, idx) => (
+                <div key={idx} style={{ 
+                  marginLeft: 10, 
+                  fontSize: 10,
+                  color: '#666',
+                  marginBottom: 2
+                }}>
+                  • {alt.label} ({Math.round(alt.score * 100)}%)
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Ambiguity indicator */}
+          {generatedIntent.isAmbiguous && (
+            <div style={{
+              marginTop: 8,
+              padding: '4px 8px',
+              background: '#fef3c7',
+              border: '1px solid #fbbf24',
+              borderRadius: 4,
+              fontSize: 10,
+              color: '#92400e',
+              fontWeight: 'bold'
+            }}>
+              ⚠️ Ambiguous: Multiple products offer this function
             </div>
           )}
         </div>

@@ -3,7 +3,7 @@ import UserContextBar from '../components/UserContextBar';
 import IntentExamples from '../components/IntentExamples';
 import HierarchyVisualization, { ExpansionMode } from '../components/HierarchyVisualization';
 import ResolutionComparison from '../components/ResolutionComparison';
-import { GeneratedIntent } from '../utils/intentMatcher';
+import { GeneratedIntent, getTopMatches } from '../utils/intentMatcher';
 import {
   USER_INTENTS,
   SAMPLE_CONTEXTS,
@@ -32,8 +32,8 @@ export interface RecentAction {
 const IntentDisambiguationSection: React.FC = () => {
   const [selectedIntent, setSelectedIntent] = useState<string | undefined>();
   const [currentContextId, setCurrentContextId] = useState<string>('marketing-manager');
-  const [showContext, setShowContext] = useState<boolean>(true);
-  const [expansionMode, setExpansionMode] = useState<ExpansionMode>('single');
+  const [showContext, setShowContext] = useState<boolean>(false);
+  const [expansionMode, setExpansionMode] = useState<ExpansionMode>('multiple');
   const [showOverlaps, setShowOverlaps] = useState<boolean>(false);
   const [showRationalized, setShowRationalized] = useState<boolean>(false);
   const [showWorkflows, setShowWorkflows] = useState<boolean>(false);
@@ -298,6 +298,7 @@ const IntentDisambiguationSection: React.FC = () => {
           userContext={currentContext}
           showContext={showContext}
           selectedIntentText={selectedIntentData?.text}
+          generatedIntent={generatedIntent && selectedIntent === generatedIntent.id ? generatedIntent : null}
           recentActions={
             // Combine all recent actions from all personas for the intent history
             Object.values(recentActionsByPersona)
@@ -475,6 +476,14 @@ function calculateResolution(
   showWorkflows: boolean,
   recentActions: RecentAction[] = []
 ): Resolution {
+  // Product name normalization mapping
+  const productNormalization: Record<string, string> = {
+    'cisionone': 'cision',
+    'cision one': 'cision',
+    'bcr': 'brandwatch',
+    'brandwatch consumer research': 'brandwatch'
+  };
+  
   // First check if this is a shared/rationalized node that requires rationalization to be on
   if (entryNodeId.includes('-shared') && !showRationalized) {
     // When rationalization is OFF but we have context, try to resolve using recent actions

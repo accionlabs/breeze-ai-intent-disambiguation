@@ -3,12 +3,11 @@ import { generateIntentFromText, GeneratedIntent } from '../utils/intentMatcher'
 
 interface IntentInputProps {
   onIntentGenerated: (intent: GeneratedIntent) => void;
-  currentGeneratedIntent: GeneratedIntent | null;
   onNewInput?: () => void;
   showRationalized?: boolean;
 }
 
-const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, currentGeneratedIntent, onNewInput, showRationalized = true }) => {
+const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput, showRationalized = true }) => {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -210,72 +209,6 @@ const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, currentGen
           </div>
         </div>
       </form>
-
-      {/* Current matched intent display */}
-      {currentGeneratedIntent && (
-        <div style={{
-          marginTop: 15,
-          padding: 10,
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: 6,
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <div style={{
-            fontSize: 10,
-            color: 'rgba(255, 255, 255, 0.7)',
-            marginBottom: 4,
-            textTransform: 'uppercase'
-          }}>
-            Current Match:
-          </div>
-          <div style={{
-            fontSize: 12,
-            color: 'white',
-            fontWeight: 'bold',
-            marginBottom: 6
-          }}>
-            "{currentGeneratedIntent.text}"
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 11,
-            color: 'rgba(255, 255, 255, 0.9)'
-          }}>
-            <span>→</span>
-            <span style={{
-              padding: '2px 6px',
-              background: currentGeneratedIntent.matchConfidence > 0.7 ? 'rgba(76, 175, 80, 0.3)' :
-                         currentGeneratedIntent.matchConfidence > 0.4 ? 'rgba(255, 152, 0, 0.3)' :
-                         'rgba(244, 67, 54, 0.3)',
-              borderRadius: 3,
-              border: '1px solid rgba(255, 255, 255, 0.3)'
-            }}>
-              {Math.round(currentGeneratedIntent.matchConfidence * 100)}% match
-            </span>
-            <span>{currentGeneratedIntent.matchedNodeLabel}</span>
-          </div>
-          
-          {/* Alternative matches */}
-          {currentGeneratedIntent.alternativeMatches && currentGeneratedIntent.alternativeMatches.length > 0 && (
-            <div style={{
-              marginTop: 8,
-              paddingTop: 8,
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-              fontSize: 10,
-              color: 'rgba(255, 255, 255, 0.7)'
-            }}>
-              <div style={{ marginBottom: 4 }}>Other possible matches:</div>
-              {currentGeneratedIntent.alternativeMatches.map((alt, idx) => (
-                <div key={idx} style={{ marginLeft: 10, color: 'rgba(255, 255, 255, 0.6)' }}>
-                  • {alt.label} ({Math.round(alt.score * 100)}%)
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
