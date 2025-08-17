@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/nexus-semantic-evolution/static/css/main.2e58bb99.css",
-    "main.js": "/nexus-semantic-evolution/static/js/main.06ae6b42.js",
+    "main.js": "/nexus-semantic-evolution/static/js/main.68a9e142.js",
     "static/js/453.fb0e3cce.chunk.js": "/nexus-semantic-evolution/static/js/453.fb0e3cce.chunk.js",
     "index.html": "/nexus-semantic-evolution/index.html",
     "main.2e58bb99.css.map": "/nexus-semantic-evolution/static/css/main.2e58bb99.css.map",
-    "main.06ae6b42.js.map": "/nexus-semantic-evolution/static/js/main.06ae6b42.js.map",
+    "main.68a9e142.js.map": "/nexus-semantic-evolution/static/js/main.68a9e142.js.map",
     "453.fb0e3cce.chunk.js.map": "/nexus-semantic-evolution/static/js/453.fb0e3cce.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.2e58bb99.css",
-    "static/js/main.06ae6b42.js"
+    "static/js/main.68a9e142.js"
   ]
 }

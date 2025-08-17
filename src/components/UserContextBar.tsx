@@ -37,6 +37,34 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
     return colors[product] || '#666';
   };
 
+  // Calculate dynamic product usage from recent actions
+  const calculateProductUsage = () => {
+    const productCounts: Record<string, number> = {};
+    let total = 0;
+    
+    // Count product usage from recent actions
+    recentActions.forEach(action => {
+      const product = action.product.toLowerCase();
+      if (product !== 'n/a') {
+        productCounts[product] = (productCounts[product] || 0) + 1;
+        total++;
+      }
+    });
+    
+    // Convert to percentages
+    const productUsage: Record<string, number> = {};
+    if (total > 0) {
+      Object.entries(productCounts).forEach(([product, count]) => {
+        productUsage[product] = count / total;
+      });
+    }
+    
+    return productUsage;
+  };
+  
+  const dynamicProductUsage = calculateProductUsage();
+  const hasRecentUsage = Object.keys(dynamicProductUsage).length > 0;
+
   return (
     <div style={{
       background: 'linear-gradient(to right, #f8f9fa, #ffffff)',
@@ -50,7 +78,7 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           {/* Role Selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>CONTEXT:</span>
+            <span style={{ fontSize: 12, color: '#666', fontWeight: 'bold' }}>PERSONA:</span>
             <select 
               value={currentContextId}
               onChange={(e) => onContextChange(e.target.value)}
@@ -121,25 +149,42 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
           )}
         </div>
 
-        {/* Product Preferences */}
+        {/* Product Preferences - Dynamic from recent actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, color: '#999' }}>Product Usage:</span>
-          {Object.entries(context.patterns.productPreferences || {})
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 3)
-            .map(([product, weight]) => (
-              <div key={product} style={{
-                padding: '3px 8px',
-                background: getProductColor(product),
-                color: 'white',
-                borderRadius: 4,
-                fontSize: 10,
-                fontWeight: 'bold',
-                opacity: 0.5 + (weight * 0.5)
-              }}>
-                {product.toUpperCase()} {Math.round(weight * 100)}%
-              </div>
-            ))}
+          <span style={{ fontSize: 11, color: '#999' }}>
+            Product Usage{hasRecentUsage ? ' (Live)' : ''}:
+          </span>
+          {hasRecentUsage ? (
+            // Show dynamic usage from recent actions
+            Object.entries(dynamicProductUsage)
+              .sort(([,a], [,b]) => b - a)
+              .slice(0, 3)
+              .map(([product, weight]) => (
+                <div key={product} style={{
+                  padding: '3px 8px',
+                  background: getProductColor(product),
+                  color: 'white',
+                  borderRadius: 4,
+                  fontSize: 10,
+                  fontWeight: 'bold',
+                  boxShadow: '0 0 8px rgba(102, 126, 234, 0.3)'
+                }}>
+                  {product.toUpperCase()} {Math.round(weight * 100)}%
+                </div>
+              ))
+          ) : (
+            // Show message when no usage data available
+            <div style={{
+              padding: '3px 8px',
+              background: '#f0f0f0',
+              color: '#999',
+              borderRadius: 4,
+              fontSize: 10,
+              fontStyle: 'italic'
+            }}>
+              No product usage yet - select intents to build history
+            </div>
+          )}
         </div>
       </div>
 

@@ -1333,6 +1333,8 @@ export const USER_INTENTS: UserIntent[] = [
 ];
 
 // Sample User Contexts
+// Note: productPreferences are now dynamically calculated from actual usage
+// These default values are only used as hints when no recent actions exist
 export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
   'marketing-manager': {
     profile: {
@@ -1343,7 +1345,7 @@ export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
     history: [],
     patterns: {
       workflowStage: 'Campaign Execution',
-      productPreferences: { smm: 0.9, prn: 0.1, brandwatch: 0.2, cision: 0.1, trendkite: 0.1 },
+      productPreferences: {},  // Will be populated dynamically from recent actions
       domainFocus: ['Social Media', 'Content Marketing']
     }
   },
@@ -1356,7 +1358,7 @@ export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
     history: [],
     patterns: {
       workflowStage: 'Research & Analysis',
-      productPreferences: { brandwatch: 0.95, trendkite: 0.6, cision: 0.1, smm: 0.05, prn: 0.05 },
+      productPreferences: {},  // Will be populated dynamically from recent actions
       domainFocus: ['Market Research', 'Consumer Insights']
     }
   },
@@ -1369,7 +1371,7 @@ export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
     history: [],
     patterns: {
       workflowStage: 'Media Relations',
-      productPreferences: { cision: 0.8, prn: 0.7, trendkite: 0.3, brandwatch: 0.1, smm: 0.1 },
+      productPreferences: {},  // Will be populated dynamically from recent actions
       domainFocus: ['Media Relations', 'Press Coverage']
     }
   },
@@ -1382,7 +1384,7 @@ export const SAMPLE_CONTEXTS: Record<string, UserContext> = {
     history: [],
     patterns: {
       workflowStage: 'Onboarding',
-      productPreferences: {},
+      productPreferences: {},  // Empty for new users
       domainFocus: []
     }
   }

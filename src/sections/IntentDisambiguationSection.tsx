@@ -322,7 +322,8 @@ const IntentDisambiguationSection: React.FC = () => {
       <div style={{
         position: 'fixed',
         bottom: 30,
-        right: 330,
+        left: '50%',
+        transform: 'translateX(-50%)',
         display: 'flex',
         gap: 10,
         alignItems: 'center'

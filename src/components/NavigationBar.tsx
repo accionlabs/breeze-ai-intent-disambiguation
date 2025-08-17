@@ -1,24 +1,19 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 
-export type Section = 'intent-disambiguation' | 'intent-mapping' | 'semantic-evolution';
+export type Section = 'home' | 'intent-disambiguation';
 
 const NavigationBar: React.FC = () => {
   const sections = [
     {
+      path: '/',
+      label: 'Instructions',
+      description: 'How to use this application'
+    },
+    {
       path: '/intent-disambiguation',
-      label: 'Intent Disambiguation',
-      description: 'Context-aware intent resolution'
-    },
-    {
-      path: '/cross-product-intents',
-      label: 'Cross Product Intents',
-      description: 'How intents orchestrate across multiple products'
-    },
-    {
-      path: '/semantic-evolution',
-      label: 'Semantic Evolution',
-      description: 'Journey from siloed to unified platform'
+      label: 'Intent Disambiguation Demo',
+      description: 'Interactive context-aware intent resolution'
     }
   ];
 

@@ -3,8 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import './App.css';
 import NavigationBar from './components/NavigationBar';
 import IntentDisambiguationSection from './sections/IntentDisambiguationSection';
-import IntentMappingSection from './sections/IntentMappingSection';
-import SemanticEvolutionSection from './sections/SemanticEvolutionSection';
+import LandingPageSection from './sections/LandingPageSection';
 
 function AppContent() {
   const location = useLocation();
@@ -13,10 +12,8 @@ function AppContent() {
   const getSubtitle = () => {
     if (location.pathname.includes('intent-disambiguation')) {
       return 'Context-Aware Intent Resolution';
-    } else if (location.pathname.includes('cross-product-intents')) {
-      return 'User Intent → Product Capabilities';
-    } else if (location.pathname.includes('semantic-evolution')) {
-      return 'Evolution from Siloed → Unified Platform';
+    } else if (location.pathname === '/' || location.pathname === '') {
+      return 'Interactive Demo & Instructions';
     }
     return '';
   };
@@ -31,9 +28,14 @@ function AppContent() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'baseline' }}>
-            <h1 style={{ margin: 0, fontSize: 24, color: '#333' }}>
-              Nexus Semantic Engineering Approach
-            </h1>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: 20 }}>
+              <h1 style={{ margin: 0, fontSize: 24, color: '#333' }}>
+                Breeze.AI Semantic Engineering
+              </h1>
+              <p style={{ margin: 0, color: '#667eea', fontSize: 14, fontWeight: '500' }}>
+                Intent Disambiguation Demo
+              </p>
+            </div>
             <NavigationBar />
           </div>
           <p style={{ margin: 0, color: '#666', fontSize: 13 }}>
@@ -51,11 +53,9 @@ function AppContent() {
         width: '100%'
       }}>
         <Routes>
-          <Route path="/" element={<Navigate to="/semantic-evolution" replace />} />
-          <Route path="/semantic-evolution" element={<SemanticEvolutionSection />} />
-          <Route path="/cross-product-intents" element={<IntentMappingSection />} />
+          <Route path="/" element={<LandingPageSection />} />
           <Route path="/intent-disambiguation" element={<IntentDisambiguationSection />} />
-          <Route path="*" element={<Navigate to="/semantic-evolution" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
