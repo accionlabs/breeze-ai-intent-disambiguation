@@ -30,8 +30,8 @@ export const USER_INTENTS: UserIntent[] = [
     id: 'intent-create-content',
     text: 'Create content about our latest product launch',
     entryLevel: 'step',
-    entryNode: 'step-schedule-posts',
-    ambiguous: true
+    entryNode: 'step-schedule-posts'
+    // Not ambiguous - only exists in SMM product
   },
   {
     id: 'intent-measure-campaign',
@@ -47,9 +47,15 @@ export const USER_INTENTS: UserIntent[] = [
   },
   {
     id: 'intent-track-coverage',
-    text: 'Track media coverage',
+    text: 'Track media coverage for intelligence',
     entryLevel: 'step',
-    entryNode: 'step-track-coverage'
+    entryNode: 'step-track-coverage-media'
+  },
+  {
+    id: 'intent-track-reputation',
+    text: 'Track coverage affecting our reputation',
+    entryLevel: 'step',
+    entryNode: 'step-track-coverage-reputation'
   },
   {
     id: 'intent-distribute-release',
@@ -58,18 +64,22 @@ export const USER_INTENTS: UserIntent[] = [
     entryNode: 'scenario-press-release'
   },
   {
-    id: 'intent-get-alerts',
-    text: 'Get alerts when something important happens',
-    entryLevel: 'action',
-    entryNode: 'action-set-media-alert',
-    ambiguous: true
+    id: 'intent-monitor-alerts-reputation',
+    text: 'Monitor alerts for reputation issues',
+    entryLevel: 'step',
+    entryNode: 'step-monitor-alerts-reputation'
+  },
+  {
+    id: 'intent-monitor-alerts-crisis',
+    text: 'Set up crisis alert monitoring',
+    entryLevel: 'step',
+    entryNode: 'step-monitor-alerts-crisis'
   },
   {
     id: 'intent-monitor-brand',
     text: 'Monitor what people are saying about our brand',
     entryLevel: 'outcome',
-    entryNode: 'outcome-consumer-intelligence',
-    ambiguous: true
+    entryNode: 'outcome-consumer-intelligence'
   },
   // Intents that map to overlapping nodes (pre-rationalized duplicates)
   {

@@ -168,7 +168,8 @@ export function reorderIntents(
     const isInDuplicate = isNodeInDuplicateHierarchy(intent.entryNode, nodes, duplicateNodes);
     const isInShared = isNodeInSharedHierarchy(intent.entryNode, nodes, sharedNodes);
     
-    if (isInDuplicate || isInShared || intent.ambiguous) {
+    // Note: We ignore the manual ambiguous flag and rely only on automatic detection
+    if (isInDuplicate || isInShared) {
       duplicateIntents.push(intent);
     } else {
       clearIntents.push(intent);

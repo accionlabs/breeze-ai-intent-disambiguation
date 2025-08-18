@@ -129,7 +129,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-media-monitoring-cision',
     level: 'scenario',
     label: 'Media Monitoring',
-    children: ['step-track-coverage-cision', 'step-analyze-media-sentiment-cision', 'step-social-monitoring-cision'],
+    children: ['step-track-coverage-media', 'step-analyze-media-sentiment-cision', 'step-social-monitoring-cision'],
     parents: ['outcome-media-intelligence'],
     products: ['cision'],
     description: 'CisionOne media monitoring implementation'
@@ -159,13 +159,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'scenario',
     label: 'Media Monitoring',
     children: [
-      // Union of all steps from the three products
-      'step-track-coverage-cision',
-      'step-analyze-media-sentiment-cision',
-      'step-track-social-brandwatch',
-      'step-analyze-trends-brandwatch',
-      'step-track-mentions-smm',
-      'step-monitor-engagement-smm',
+      // Only shared/unified steps should be here
       // Unified social monitoring (contains union of social monitoring actions)
       'step-social-monitoring-shared'
     ],
@@ -185,7 +179,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-reputation-monitoring',
     level: 'scenario',
     label: 'Reputation Monitoring',
-    children: ['step-track-coverage', 'step-monitor-alerts'],
+    children: ['step-track-coverage-reputation', 'step-monitor-alerts-reputation'],
     parents: ['outcome-protect-brand'],
     description: 'Monitor brand reputation in media'
   },
@@ -193,7 +187,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-crisis-management',
     level: 'scenario',
     label: 'Crisis Management',
-    children: ['step-monitor-alerts', 'step-rapid-response'],
+    children: ['step-monitor-alerts-crisis', 'step-rapid-response'],
     parents: ['outcome-protect-brand'],
     description: 'Rapid response to media crises'
   },
@@ -293,15 +287,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
   
   // Product-specific Steps for Media Monitoring (pre-rationalization)
-  'step-track-coverage-cision': {
-    id: 'step-track-coverage-cision',
-    level: 'step',
-    label: 'Track Coverage',
-    children: ['action-set-media-alert', 'action-monitor-outlets'],
-    parents: ['scenario-media-monitoring-cision'],
-    products: ['cision'],
-    description: 'CisionOne coverage tracking'
-  },
   'step-analyze-media-sentiment-cision': {
     id: 'step-analyze-media-sentiment-cision',
     level: 'step',
@@ -368,14 +353,23 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     products: ['cision', 'brandwatch', 'smm'],
     description: 'Unified social media monitoring with all capabilities from all products'
   },
-  'step-track-coverage': {
-    id: 'step-track-coverage',
+  'step-track-coverage-media': {
+    id: 'step-track-coverage-media',
     level: 'step',
-    label: 'Track Coverage',
-    children: ['action-set-media-alert', 'action-monitor-outlets'],
-    parents: ['scenario-reputation-monitoring', 'scenario-media-monitoring-shared'],
+    label: 'Track Media Coverage',
+    children: ['action-set-media-alert-media', 'action-monitor-outlets-media'],
+    parents: ['scenario-media-monitoring-cision'],
     products: ['cision'],
-    description: 'Track media coverage across outlets'
+    description: 'Track media coverage for media intelligence'
+  },
+  'step-track-coverage-reputation': {
+    id: 'step-track-coverage-reputation',
+    level: 'step',
+    label: 'Track Reputation Coverage',
+    children: ['action-set-media-alert-reputation', 'action-monitor-outlets-reputation'],
+    parents: ['scenario-reputation-monitoring'],
+    products: ['cision'],
+    description: 'Track media coverage for reputation monitoring'
   },
   'step-find-journalists': {
     id: 'step-find-journalists',
@@ -395,14 +389,23 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     products: ['cision'],
     description: 'Pitch stories to journalists'
   },
-  'step-monitor-alerts': {
-    id: 'step-monitor-alerts',
+  'step-monitor-alerts-reputation': {
+    id: 'step-monitor-alerts-reputation',
     level: 'step',
-    label: 'Monitor Alerts',
-    children: ['action-set-media-alert', 'action-escalate-issue'],
-    parents: ['scenario-reputation-monitoring', 'scenario-crisis-management'],
+    label: 'Monitor Reputation Alerts',
+    children: ['action-set-media-alert-alerts', 'action-escalate-issue-reputation'],
+    parents: ['scenario-reputation-monitoring'],
     products: ['cision'],
-    description: 'Monitor alerts for brand mentions'
+    description: 'Monitor alerts for reputation management'
+  },
+  'step-monitor-alerts-crisis': {
+    id: 'step-monitor-alerts-crisis',
+    level: 'step',
+    label: 'Monitor Crisis Alerts',
+    children: ['action-set-media-alert-crisis', 'action-escalate-issue-crisis'],
+    parents: ['scenario-crisis-management'],
+    products: ['cision'],
+    description: 'Monitor alerts for crisis management'
   },
   'step-rapid-response': {
     id: 'step-rapid-response',
@@ -752,23 +755,59 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
   
   // Action Level - CisionOne Actions
-  'action-set-media-alert': {
-    id: 'action-set-media-alert',
+  'action-set-media-alert-media': {
+    id: 'action-set-media-alert-media',
     level: 'action',
     label: 'Set Media Alert',
     children: [],
-    parents: ['step-monitor-alerts', 'step-track-coverage'],
+    parents: ['step-track-coverage-media'],
     products: ['cision'],
-    description: 'Configure media monitoring alerts'
+    description: 'Configure media alerts for media monitoring'
   },
-  'action-monitor-outlets': {
-    id: 'action-monitor-outlets',
+  'action-set-media-alert-reputation': {
+    id: 'action-set-media-alert-reputation',
+    level: 'action',
+    label: 'Set Media Alert',
+    children: [],
+    parents: ['step-track-coverage-reputation'],
+    products: ['cision'],
+    description: 'Configure media alerts for reputation tracking'
+  },
+  'action-set-media-alert-alerts': {
+    id: 'action-set-media-alert-alerts',
+    level: 'action',
+    label: 'Set Media Alert',
+    children: [],
+    parents: ['step-monitor-alerts-reputation'],
+    products: ['cision'],
+    description: 'Configure alerts for reputation monitoring'
+  },
+  'action-set-media-alert-crisis': {
+    id: 'action-set-media-alert-crisis',
+    level: 'action',
+    label: 'Set Media Alert',
+    children: [],
+    parents: ['step-monitor-alerts-crisis'],
+    products: ['cision'],
+    description: 'Configure alerts for crisis management'
+  },
+  'action-monitor-outlets-media': {
+    id: 'action-monitor-outlets-media',
     level: 'action',
     label: 'Monitor Outlets',
     children: [],
-    parents: ['step-track-coverage'],
+    parents: ['step-track-coverage-media'],
     products: ['cision'],
-    description: 'Monitor specific media outlets'
+    description: 'Monitor outlets for media intelligence'
+  },
+  'action-monitor-outlets-reputation': {
+    id: 'action-monitor-outlets-reputation',
+    level: 'action',
+    label: 'Monitor Outlets',
+    children: [],
+    parents: ['step-track-coverage-reputation'],
+    products: ['cision'],
+    description: 'Monitor outlets for reputation tracking'
   },
   'action-tone-analysis': {
     id: 'action-tone-analysis',
@@ -824,14 +863,23 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     products: ['cision'],
     description: 'Track journalist responses'
   },
-  'action-escalate-issue': {
-    id: 'action-escalate-issue',
+  'action-escalate-issue-reputation': {
+    id: 'action-escalate-issue-reputation',
     level: 'action',
     label: 'Escalate Issue',
     children: [],
-    parents: ['step-monitor-alerts'],
+    parents: ['step-monitor-alerts-reputation'],
     products: ['cision'],
-    description: 'Escalate critical issues'
+    description: 'Escalate reputation issues'
+  },
+  'action-escalate-issue-crisis': {
+    id: 'action-escalate-issue-crisis',
+    level: 'action',
+    label: 'Escalate Issue',
+    children: [],
+    parents: ['step-monitor-alerts-crisis'],
+    products: ['cision'],
+    description: 'Escalate crisis issues'
   },
   'action-draft-statement': {
     id: 'action-draft-statement',

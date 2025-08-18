@@ -86,6 +86,13 @@ const IntentDisambiguationSection: React.FC = () => {
 
   // Calculate resolution based on selected intent and context
   const { baseResolution, contextualResolution } = useMemo(() => {
+    console.log('RESOLUTION_CALCULATION:', {
+      selectedIntent,
+      generatedIntentId: generatedIntent?.id,
+      hasSelectedIntent: !!selectedIntent,
+      hasGeneratedIntent: !!generatedIntent
+    });
+    
     if (!selectedIntent && !generatedIntent) return { baseResolution: undefined, contextualResolution: undefined };
 
     // Determine the entry node
@@ -97,6 +104,8 @@ const IntentDisambiguationSection: React.FC = () => {
       entryNode = intent?.entryNode;
     }
     
+    console.log('Entry node found:', entryNode);
+    
     if (!entryNode) return { baseResolution: undefined, contextualResolution: undefined };
 
     // Get recent actions for current persona - filter for successful ones only for context
@@ -104,12 +113,18 @@ const IntentDisambiguationSection: React.FC = () => {
     const successfulRecentActions = currentPersonaRecentActions.filter((action: any) => action.success);
     
     // Base resolution (no context) - don't pass recent actions
+    console.log('Calculating base resolution...');
     const baseRes = calculateResolution(entryNode, null, showRationalized, showWorkflows, [], FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps);
+    console.log('Base resolution result:', baseRes);
     
     // Contextual resolution - pass only successful recent actions when context is on
+    console.log('Calculating contextual resolution with', successfulRecentActions.length, 'recent actions');
     const contextRes = calculateResolution(entryNode, currentContext, showRationalized, showWorkflows, successfulRecentActions, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps);
+    console.log('Contextual resolution result:', contextRes);
 
-    return { baseResolution: baseRes, contextualResolution: contextRes };
+    const result = { baseResolution: baseRes, contextualResolution: contextRes };
+    console.log('useMemo returning:', result);
+    return result;
   }, [selectedIntent, generatedIntent, currentContext, showRationalized, showWorkflows, currentContextId, recentActionsByPersona, USER_INTENTS, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps]);
 
   // Get the selected intent data (either from predefined or generated)
@@ -138,6 +153,16 @@ const IntentDisambiguationSection: React.FC = () => {
     // Use the appropriate resolution based on context setting
     const activeResolution = showContext ? contextualResolution : baseResolution;
     
+    console.log('RESOLUTION_SELECTION:', {
+      showContext,
+      hasBaseResolution: !!baseResolution,
+      hasContextualResolution: !!contextualResolution,
+      baseConfidence: baseResolution?.confidenceScore,
+      contextualConfidence: contextualResolution?.confidenceScore,
+      activeResolutionType: showContext ? 'contextual' : 'base',
+      activeConfidence: activeResolution?.confidenceScore
+    });
+    
     if (selectedIntent && activeResolution) {
       // Get intent data (could be predefined or generated)
       let intentData: { text: string; entryNode: string } | undefined;
@@ -151,6 +176,15 @@ const IntentDisambiguationSection: React.FC = () => {
       if (intentData) {
         // Check if resolution was successful
         const isSuccessful = activeResolution.confidenceScore > 0;
+        
+        console.log('RESOLUTION_SUCCESS_CHECK:', {
+          intentText: intentData.text,
+          confidenceScore: activeResolution.confidenceScore,
+          isSuccessful,
+          showContext,
+          activeResolutionType: showContext ? 'contextual' : 'base',
+          reasoning: activeResolution.reasoning
+        });
         
         // Always prepare the action data (for display in recent intents)
         // Get the outcome and product from the resolution
@@ -254,7 +288,7 @@ const IntentDisambiguationSection: React.FC = () => {
         setLastTrackedIntent(selectedIntent);
         
         // Unselect the intent after adding to recent actions
-        // This prevents re-resolution when toggles change
+        // This prevents auto-processing when toggles change
         setSelectedIntent(undefined);
       }
     }
@@ -285,6 +319,8 @@ const IntentDisambiguationSection: React.FC = () => {
 
   const toggleContext = () => {
     setShowContext(!showContext);
+    // Reset last tracked intent so the same intent can be re-evaluated with different context
+    setLastTrackedIntent(undefined);
   };
 
   return (
@@ -420,6 +456,8 @@ const IntentDisambiguationSection: React.FC = () => {
             if (showRationalized) {
               setShowWorkflows(false);
             }
+            // Reset last tracked intent so the same intent can be re-evaluated
+            setLastTrackedIntent(undefined);
           }}
           style={{
             padding: UI_LAYOUT.BUTTON_PADDING,
@@ -447,7 +485,11 @@ const IntentDisambiguationSection: React.FC = () => {
         
         {/* Workflows Toggle - Only enabled when rationalization is on */}
         <button
-          onClick={() => setShowWorkflows(!showWorkflows)}
+          onClick={() => {
+            setShowWorkflows(!showWorkflows);
+            // Reset last tracked intent so the same intent can be re-evaluated
+            setLastTrackedIntent(undefined);
+          }}
           disabled={!showRationalized}
           style={{
             padding: UI_LAYOUT.BUTTON_PADDING,
@@ -720,6 +762,17 @@ function calculateResolution(
       // Get all duplicate nodes from alternatives
       const allDuplicateNodes = getDuplicateNodesFromAlternatives(RATIONALIZED_NODE_ALTERNATIVES);
       
+      // Debug log for duplicate detection
+      console.log('DUPLICATE_DETECTION_DEBUG:', {
+        entryNodeId,
+        entryNodeLabel: entryNode.label,
+        isDuplicate,
+        directLabelDuplicates: duplicateNodes.length,
+        allDuplicateNodes: allDuplicateNodes.slice(0, 10), // Show first 10 to avoid huge logs
+        totalDuplicateCount: allDuplicateNodes.length,
+        rationalizedAlternatives: Object.keys(RATIONALIZED_NODE_ALTERNATIVES).slice(0, 5) // Show first 5 groups
+      });
+      
       // Check if current node itself is a duplicate
       if (allDuplicateNodes.includes(entryNodeId)) {
         duplicateAncestorLabel = entryNode.label;
@@ -770,17 +823,102 @@ function calculateResolution(
           }
         });
         
-        // Check if current node's product is preferred
-        const currentNodeProducts = entryNode.products || [];
+        // Check if we can resolve through this path based on product preference
+        // The key insight: if the entry node and all its ancestors up to the duplicate
+        // are in the same product, then we can use context to resolve through that product
+        
+        // Get all products involved in the path from entry node to the duplicate ancestor
+        const pathProducts = new Set<string>();
+        const pathTrace: any[] = [];
+        
+        // Add entry node's products
+        if (entryNode.products) {
+          entryNode.products.forEach((p: string) => {
+            pathProducts.add(p.toLowerCase());
+          });
+        }
+        pathTrace.push({
+          nodeId: entryNodeId,
+          label: entryNode.label,
+          products: entryNode.products || [],
+          type: 'entry'
+        });
+        
+        // Walk up the tree to find all products in the path
+        let walkNode = entryNode;
+        while (walkNode && walkNode.parents && walkNode.parents.length > 0) {
+          const parentId = walkNode.parents[0];
+          const parentNode = FUNCTIONAL_NODES[parentId];
+          if (parentNode) {
+            pathTrace.push({
+              nodeId: parentNode.id,
+              label: parentNode.label,
+              products: parentNode.products || [],
+              type: 'ancestor'
+            });
+            if (parentNode.products) {
+              parentNode.products.forEach((p: string) => {
+                pathProducts.add(p.toLowerCase());
+              });
+            }
+            // Stop if we've reached the duplicate ancestor
+            if (parentNode.label === duplicateAncestorLabel) {
+              pathTrace[pathTrace.length - 1].type = 'duplicate_ancestor';
+              break;
+            }
+            walkNode = parentNode;
+          } else {
+            break;
+          }
+        }
+        
+        // Check if any product in the path has weight
         let currentNodeWeight = 0;
-        currentNodeProducts.forEach((product: string) => {
-          currentNodeWeight += productWeights[product.toLowerCase()] || 0;
+        let bestProduct = '';
+        const productAnalysis: any[] = [];
+        pathProducts.forEach((product: string) => {
+          const weight = productWeights[product] || 0;
+          productAnalysis.push({
+            product,
+            weight,
+            hasWeight: weight > 0
+          });
+          if (weight > 0) {
+            currentNodeWeight += weight;
+            if (!bestProduct || weight > (productWeights[bestProduct] || 0)) {
+              bestProduct = product;
+            }
+          }
+        });
+        
+        // Consolidated debug log
+        console.log('CONTEXT_RESOLUTION_DEBUG:', {
+          intent: entryNode.label,
+          entryNodeId,
+          isDuplicate,
+          duplicateAncestor: {
+            label: duplicateAncestorLabel,
+            productCount: duplicateAncestorCount
+          },
+          recentActions: recentActions.map((a: any) => ({
+            product: a.product,
+            intent: a.intent
+          })),
+          productWeights,
+          pathTrace,
+          pathProducts: Array.from(pathProducts),
+          productAnalysis,
+          resolution: {
+            totalWeight: currentNodeWeight,
+            bestProduct,
+            canResolve: currentNodeWeight > 0
+          }
         });
         
         if (currentNodeWeight > 0) {
           // Context helps - mark it and continue
           contextResolvedAmbiguity = true;
-          const productName = currentNodeProducts[0] || 'this product';
+          const productName = bestProduct || 'this product';
           contextMessage = `Context-based resolution: Selected ${productName.toUpperCase()} path through ambiguous "${duplicateAncestorLabel}" (${duplicateAncestorCount} products offer this functionality)`;
           // Continue with normal resolution
         } else {
@@ -929,44 +1067,52 @@ function calculateResolution(
   traverseDown(entryNodeId);
 
   // Apply context if available
-  if (context && context.history.length > 0) {
-    // Check if entry node matches recent history
-    const recentNodes = context.history.map((h: any) => h.node);
-    if (recentNodes.includes(entryNodeId)) {
-      reasoning.push('Intent matches recent user activity');
-    }
-
-    // Check product preferences
-    const nodeProducts = entryNode.products || [];
-    const preferredProducts = Object.entries(context.patterns.productPreferences)
-      .sort(([,a], [,b]) => b - a)
-      .map(([product]: [string, number]) => product);
-    
-    if (nodeProducts.some((p: string) => preferredProducts.includes(p))) {
-      reasoning.push(`Aligns with preferred products: ${preferredProducts.slice(0, 2).join(', ')}`);
-    }
-
-    // Add workflow stage reasoning
-    if (context.patterns.workflowStage) {
-      reasoning.push(`Current workflow stage: ${context.patterns.workflowStage}`);
-    }
-
-    // Filter actions based on context
-    if (entryNode.level === 'step' && entryNode.children.length > 0) {
-      // Prioritize actions based on product preferences
-      const contextualActions = selectedActions.filter((actionId: string) => {
-        const action = FUNCTIONAL_NODES[actionId];
-        if (!action || !action.products) return false;
-        return action.products.some((p: string) => 
-          (context.patterns.productPreferences[p] || 0) > 0.5
-        );
-      });
-      
-      if (contextualActions.length > 0) {
-        selectedActions.length = 0;
-        selectedActions.push(...contextualActions);
-        reasoning.push('Actions filtered based on product preferences');
+  // Check both the context object and recentActions for context information
+  const hasContext = (context && context.history && context.history.length > 0) || recentActions.length > 0;
+  
+  if (hasContext) {
+    if (context && context.history && context.history.length > 0) {
+      // Check if entry node matches recent history
+      const recentNodes = context.history.map((h: any) => h.node);
+      if (recentNodes.includes(entryNodeId)) {
+        reasoning.push('Intent matches recent user activity');
       }
+
+      // Check product preferences
+      const nodeProducts = entryNode.products || [];
+      const preferredProducts = Object.entries(context.patterns.productPreferences)
+        .sort(([,a], [,b]) => b - a)
+        .map(([product]: [string, number]) => product);
+      
+      if (nodeProducts.some((p: string) => preferredProducts.includes(p))) {
+        reasoning.push(`Aligns with preferred products: ${preferredProducts.slice(0, 2).join(', ')}`);
+      }
+
+      // Add workflow stage reasoning
+      if (context.patterns.workflowStage) {
+        reasoning.push(`Current workflow stage: ${context.patterns.workflowStage}`);
+      }
+
+      // Filter actions based on context
+      if (entryNode.level === 'step' && entryNode.children.length > 0) {
+        // Prioritize actions based on product preferences
+        const contextualActions = selectedActions.filter((actionId: string) => {
+          const action = FUNCTIONAL_NODES[actionId];
+          if (!action || !action.products) return false;
+          return action.products.some((p: string) => 
+            (context.patterns.productPreferences[p] || 0) > 0.5
+          );
+        });
+        
+        if (contextualActions.length > 0) {
+          selectedActions.length = 0;
+          selectedActions.push(...contextualActions);
+          reasoning.push('Actions filtered based on product preferences');
+        }
+      }
+    } else if (recentActions.length > 0) {
+      // We have recent actions but no full context object
+      reasoning.push('Using recent action history for context');
     }
   } else {
     reasoning.push('No user context available - using generic resolution');
@@ -1011,7 +1157,7 @@ function calculateResolution(
     reasoning.unshift(contextMessage);
   }
   
-  return {
+  const finalResolution = {
     entryNode: entryNodeId,
     traversalPath: {
       upward: upwardPath,
@@ -1022,6 +1168,18 @@ function calculateResolution(
     confidenceScore,
     reasoning
   };
+  
+  console.log('FINAL_RESOLUTION:', {
+    entryNodeId,
+    contextResolvedAmbiguity,
+    contextMessage,
+    selectedActions: selectedActions.length,
+    productActivation: productActivation.length,
+    confidenceScore,
+    reasoning
+  });
+  
+  return finalResolution;
 }
 
 export default IntentDisambiguationSection;
