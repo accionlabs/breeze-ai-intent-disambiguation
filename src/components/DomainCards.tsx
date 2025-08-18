@@ -197,12 +197,22 @@ const DomainCards: React.FC<DomainCardsProps> = ({ onDomainSelect }) => {
     {
       id: 'ecommerce',
       name: 'E-Commerce Platform',
-      description: 'Multi-channel retail operations including inventory, orders, and customer service.',
+      description: 'Simplified e-commerce demo with clear product overlaps for easy demonstration.',
       category: 'Retail & E-Commerce',
-      keywords: ['Inventory', 'Orders', 'Shipping', 'Customer Service'],
+      keywords: ['Product Search', 'Order Processing', 'Customer Profiles', 'Inventory'],
       primaryColor: '#f59e0b',
       accentColor: '#d97706',
-      available: false
+      available: true
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise Operations',
+      description: 'Integrated enterprise systems showcasing both packaged (SAP, Salesforce, MS365) and custom applications.',
+      category: 'Enterprise Systems',
+      keywords: ['ERP', 'CRM', 'Business Intelligence', 'Project Management'],
+      primaryColor: '#8b5cf6',
+      accentColor: '#7c3aed',
+      available: true
     },
     {
       id: 'financial',
@@ -217,7 +227,6 @@ const DomainCards: React.FC<DomainCardsProps> = ({ onDomainSelect }) => {
   ];
   
   const handleDomainSelect = (domainId: string) => {
-    console.log(`Selected domain: ${domainId}`);
     onDomainSelect(domainId);
   };
   

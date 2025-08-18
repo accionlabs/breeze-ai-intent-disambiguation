@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { generateIntentFromText, GeneratedIntent } from '../utils/intentMatcher';
-import { EXAMPLE_QUERIES, INTENT_INPUT_PLACEHOLDER } from '../config';
+import { INTENT_INPUT_PLACEHOLDER } from '../config';
 
 interface IntentInputProps {
   onIntentGenerated: (intent: GeneratedIntent) => void;
@@ -49,10 +49,6 @@ const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput
     }, 300);
   };
 
-  const handleExampleClick = (example: string) => {
-    setInputText(example);
-    setError(null);
-  };
 
   return (
     <div style={{
@@ -159,48 +155,6 @@ const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput
             {error}
           </div>
         )}
-
-        {/* Example queries */}
-        <div style={{ marginTop: 10 }}>
-          <div style={{
-            fontSize: 10,
-            color: 'rgba(255, 255, 255, 0.7)',
-            marginBottom: 6,
-            textTransform: 'uppercase',
-            letterSpacing: 0.5
-          }}>
-            Try Examples:
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {EXAMPLE_QUERIES.map((example: string, index: number) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => handleExampleClick(example)}
-                style={{
-                  padding: '4px 8px',
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  borderRadius: 4,
-                  fontSize: 10,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                }}
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-        </div>
       </form>
     </div>
   );

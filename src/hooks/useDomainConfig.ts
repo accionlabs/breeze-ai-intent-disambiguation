@@ -2,6 +2,7 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { convertLegacyNodes, GraphOperations } from '../utils/graphModel';
+import { detectRationalizedGroups, generateRationalizedAlternatives, generateDuplicateNodes, generateSharedNodes } from '../utils/automaticRationalization';
 import type { 
   FunctionalNode, 
   UserIntent, 
@@ -32,6 +33,14 @@ interface DomainConfig {
   graphOps: GraphOperations;
 }
 
+// Create a domain module context to enable dynamic imports
+const domainModules: Record<string, any> = {
+  cision: require('../config/domains/cision'),
+  healthcare: require('../config/domains/healthcare'),
+  ecommerce: require('../config/domains/ecommerce'),
+  enterprise: require('../config/domains/enterprise')
+};
+
 export function useDomainConfig(): DomainConfig | null {
   const { domainId } = useParams<{ domainId: string }>();
   
@@ -39,23 +48,40 @@ export function useDomainConfig(): DomainConfig | null {
     if (!domainId) return null;
     
     try {
-      // Dynamically import the domain configuration
-      let domainModule: any;
-      if (domainId === 'healthcare') {
-        domainModule = require('../config/domains/healthcare');
-      } else {
-        // Default to cision
-        domainModule = require('../config/domains/cision');
+      // Dynamically get the domain module
+      const domainModule = domainModules[domainId];
+      
+      if (!domainModule) {
+        console.warn(`Domain '${domainId}' not found. Available domains:`, Object.keys(domainModules));
+        // Fallback to cision if domain not found
+        const fallbackModule = domainModules['cision'];
+        const FUNCTIONAL_GRAPH = convertLegacyNodes(fallbackModule.FUNCTIONAL_NODES);
+        const graphOps = new GraphOperations(FUNCTIONAL_GRAPH);
+        
+        return {
+          ...fallbackModule,
+          FUNCTIONAL_GRAPH,
+          graphOps
+        };
       }
       
       // Create the functional graph
       const FUNCTIONAL_GRAPH = convertLegacyNodes(domainModule.FUNCTIONAL_NODES);
       const graphOps = new GraphOperations(FUNCTIONAL_GRAPH);
       
+      // Auto-generate rationalization data from nodes
+      const rationalizedGroups = detectRationalizedGroups(domainModule.FUNCTIONAL_NODES);
+      const RATIONALIZED_NODE_ALTERNATIVES = generateRationalizedAlternatives(rationalizedGroups);
+      const DUPLICATE_NODES = generateDuplicateNodes(rationalizedGroups, domainModule.FUNCTIONAL_NODES);
+      const SHARED_NODES = generateSharedNodes(rationalizedGroups);
+      
       return {
         ...domainModule,
         FUNCTIONAL_GRAPH,
-        graphOps
+        graphOps,
+        RATIONALIZED_NODE_ALTERNATIVES,
+        DUPLICATE_NODES,
+        SHARED_NODES
       };
     } catch (error) {
       console.error(`Failed to load domain configuration for ${domainId}:`, error);

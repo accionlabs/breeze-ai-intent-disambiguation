@@ -81,16 +81,20 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
           Breeze.AI Semantic Engineering
         </h1>
         <h2 style={{ fontSize: 24, marginBottom: 20, opacity: 0.9, fontWeight: 'normal' }}>
-          Multi-Domain Intent Disambiguation Platform
+          Build Domain-Specific AI Agents for Enterprise Software
         </h2>
-        <p style={{ fontSize: 18, opacity: 0.95, maxWidth: 900, margin: '0 auto 20px' }}>
-          This demonstration showcases how Accion's Breeze.AI Semantic Engineering Methodology 
-          provides a reliable way to manage a portfolio of products and enable them for AI Agents 
-          to enhance accessibility through intent disambiguation using functional ontologies.
+        <p style={{ fontSize: 18, opacity: 0.95, maxWidth: 900, margin: '0 auto 20px', fontWeight: 500 }}>
+          Create AI agents that can autonomously invoke product features across your existing 
+          software portfolio in a predictable, controllable, and explainable way.
         </p>
-        <p style={{ fontSize: 16, opacity: 0.9, maxWidth: 800, margin: '0 auto' }}>
-          See how functional graphs can be used to disambiguate user intents—whether from 
-          a front-end application or AI Agents—with intelligent mapping and context awareness.
+        <p style={{ fontSize: 16, opacity: 0.9, maxWidth: 850, margin: '0 auto 15px' }}>
+          The Breeze.AI Semantic Engineering methodology provides a structured approach to building 
+          domain-specific AI agents that understand complex business intents and orchestrate actions 
+          across multiple software products—with proven patterns for disambiguation.
+        </p>
+        <p style={{ fontSize: 15, opacity: 0.85, maxWidth: 800, margin: '0 auto', fontStyle: 'italic' }}>
+          See live demonstrations of how AI agents navigate product features, resolve overlapping 
+          functionality, and maintain full explainability of their decision-making process.
         </p>
       </div>
 
@@ -103,7 +107,7 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
         border: '1px solid #e0e0e0',
         marginBottom: 20
       }}>
-        <h2 style={{ color: '#333', marginBottom: 20 }}>Core Features</h2>
+        <h2 style={{ color: '#333', marginBottom: 20 }}>AI Agent Capabilities</h2>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
@@ -111,24 +115,83 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
         }}>
           <FeatureItem
             number="1"
-            title="Sample Functional Graphs"
-            description="Hierarchical representation of product capabilities from outcomes to specific actions"
+            title="Autonomous Feature Invocation"
+            description="AI agents independently navigate and execute features across your software portfolio based on natural language intents"
           />
           <FeatureItem
             number="2"
-            title="Intent Disambiguation"
-            description="Intelligent mapping of user intents to functional graphs using advanced text matching"
+            title="Predictable & Controllable"
+            description="Functional ontologies ensure agents operate within defined boundaries with deterministic behavior patterns"
           />
           <FeatureItem
             number="3"
-            title="Context-Based Mapping"
-            description="Dynamic resolution based on user activity tracking and usage patterns"
+            title="Disambiguation & Rationalization"
+            description="Proven methodology to identify and resolve overlapping features between products, ensuring agents select the right capability"
           />
           <FeatureItem
             number="4"
-            title="Rationalization of Overlaps"
-            description="Unification of duplicate functionality across multiple products"
+            title="Full Explainability"
+            description="Complete transparency into agent decision-making with visual path traversal and confidence scoring"
           />
+        </div>
+      </div>
+
+      {/* Enterprise Value Proposition */}
+      <div style={{
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+        borderRadius: 12,
+        padding: 30,
+        marginBottom: 20,
+        border: '1px solid #dee2e6'
+      }}>
+        <h2 style={{ color: '#333', marginBottom: 20 }}>The Semantic Engineering Advantage</h2>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: 20
+        }}>
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8,
+            borderLeft: '4px solid #667eea'
+          }}>
+            <h3 style={{ color: '#667eea', fontSize: 16, marginBottom: 10 }}>
+              📚 Proven Methodology
+            </h3>
+            <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              Structured approach with pre-built domain patterns and functional ontologies 
+              that accelerate agent development while maintaining flexibility for customization.
+            </p>
+          </div>
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8,
+            borderLeft: '4px solid #10b981'
+          }}>
+            <h3 style={{ color: '#10b981', fontSize: 16, marginBottom: 10 }}>
+              🔧 Software-Ready Integration
+            </h3>
+            <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              Framework designed to map AI agents to your existing software capabilities, 
+              with templates and patterns for common enterprise applications.
+            </p>
+          </div>
+          <div style={{ 
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8,
+            borderLeft: '4px solid #f59e0b'
+          }}>
+            <h3 style={{ color: '#f59e0b', fontSize: 16, marginBottom: 10 }}>
+              🎯 Controlled Autonomy
+            </h3>
+            <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              Agents operate within defined boundaries using functional graphs, ensuring 
+              predictable behavior while maintaining the flexibility to handle complex intents.
+            </p>
+          </div>
         </div>
       </div>
 

@@ -49,6 +49,18 @@ export const DOMAIN_METADATA: Record<string, DomainMetadata> = {
     industry: 'Retail',
     capabilities: ['Inventory Management', 'Order Processing', 'Shipping', 'Customer Service', 'Analytics']
   },
+  'enterprise': {
+    id: 'enterprise',
+    name: 'Enterprise Operations',
+    tagline: 'Integrated COTS & Custom Applications',
+    description: 'Enterprise-wide integration of packaged applications (SAP, Salesforce, MS365) with custom-built systems',
+    category: 'Enterprise Systems',
+    primaryColor: '#8b5cf6',
+    accentColor: '#7c3aed',
+    company: 'Global Enterprise Inc.',
+    industry: 'Enterprise Software',
+    capabilities: ['ERP', 'CRM', 'Business Intelligence', 'Project Management', 'Field Operations', 'Collaboration']
+  },
   'financial': {
     id: 'financial',
     name: 'Financial Services',

@@ -54,11 +54,6 @@ export interface DomainConfig {
   
   // User contexts
   SAMPLE_CONTEXTS: Record<string, UserContext>;
-  
-  // Rationalization
-  RATIONALIZED_NODE_ALTERNATIVES: Record<string, Record<string, string>>;
-  DUPLICATE_NODES: string[];
-  SHARED_NODES: string[];
 }
 
 // Registry class to manage domains
@@ -145,10 +140,7 @@ export async function loadDomain(domainId: string): Promise<DomainConfig | null>
       USER_INTENTS: domainModule.USER_INTENTS,
       EXAMPLE_QUERIES: domainModule.EXAMPLE_QUERIES,
       INTENT_INPUT_PLACEHOLDER: domainModule.INTENT_INPUT_PLACEHOLDER,
-      SAMPLE_CONTEXTS: domainModule.SAMPLE_CONTEXTS,
-      RATIONALIZED_NODE_ALTERNATIVES: domainModule.RATIONALIZED_NODE_ALTERNATIVES,
-      DUPLICATE_NODES: domainModule.DUPLICATE_NODES,
-      SHARED_NODES: domainModule.SHARED_NODES
+      SAMPLE_CONTEXTS: domainModule.SAMPLE_CONTEXTS
     };
     
     return domainConfig;
@@ -161,7 +153,7 @@ export async function loadDomain(domainId: string): Promise<DomainConfig | null>
 // Initialize with available domains
 export async function initializeDomains(): Promise<void> {
   // Load all available domains
-  const domainIds = ['cision', 'healthcare'];
+  const domainIds = ['cision', 'healthcare', 'ecommerce', 'enterprise'];
   
   for (const domainId of domainIds) {
     const domain = await loadDomain(domainId);

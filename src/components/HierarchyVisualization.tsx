@@ -9,6 +9,8 @@ import {
 } from '../config';
 import type { NodeMetadata } from '../utils/graphModel';
 import TreeNode from './TreeNode';
+import { DEFAULT_LAYOUT_CONFIG } from '../types/layout';
+import { calculateCompactBranchLayout } from '../utils/layoutCalculators';
 
 export type ExpansionMode = 'single' | 'multiple';
 
@@ -44,7 +46,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   showRationalized = true, // Default to showing rationalized state
   showWorkflows = false, // Default to not showing workflows
   recentActions = [],
-  domainConfig
+  domainConfig,
 }) => {
   // Get domain-specific values or fallback to imported defaults
   const FUNCTIONAL_NODES = domainConfig?.FUNCTIONAL_NODES || require('../config').FUNCTIONAL_NODES;
@@ -68,6 +70,11 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  // Focus mode state
+  const [focusMode, setFocusMode] = useState(false);
+  const [pendingFocusNode, setPendingFocusNode] = useState<string | null>(null);
+  const [focusBounds, setFocusBounds] = useState<{minX: number, maxX: number, minY: number, maxY: number} | null>(null);
   
   // Effect to handle expansion mode changes
   useEffect(() => {
@@ -249,6 +256,8 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     setExpandedNodes(nodesToExpand);
   }, [selectedIntent, effectiveResolution, effectiveEntryNode, matchedNodes, showOverlaps, showRationalized]);
 
+  // Don't auto-reset zoom and pan - let user control it manually or via focus mode
+
   // Calculate which nodes should be visible using depth-first traversal
   const visibleNodes = useMemo(() => {
     const visible = new Set<string>();
@@ -346,22 +355,17 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     return visible;
   }, [expandedNodes, selectedIntent, matchedNodes, showOverlaps, showRationalized, showWorkflows]);
 
-  // Calculate node positions with dynamic sizing to prevent overlap
+  // Calculate node positions using selected layout strategy
   const { nodePositions, graphBounds } = useMemo(() => {
-    const positions: Record<string, NodePosition> = {};
     
     // Use layout constants from config
     const { NODE_WIDTH, MIN_NODE_SPACING, MARGIN, LABEL_MARGIN } = LAYOUT;
-    const LEVEL_HEIGHT = 100; // Vertical spacing between levels
-    
-    // Fixed Y positions properly aligned with level labels
-    const levelY = {
-      product: MARGIN + 50,
-      workflow: MARGIN + 50 + LEVEL_HEIGHT,
-      outcome: MARGIN + 50 + LEVEL_HEIGHT * 2,
-      scenario: MARGIN + 50 + LEVEL_HEIGHT * 3,
-      step: MARGIN + 50 + LEVEL_HEIGHT * 4,
-      action: MARGIN + 50 + LEVEL_HEIGHT * 5
+    const layoutConfig = {
+      nodeWidth: NODE_WIDTH,
+      minNodeSpacing: MIN_NODE_SPACING,
+      levelHeight: 100,
+      margin: MARGIN,
+      labelMargin: LABEL_MARGIN
     };
 
     // Collect nodes by level in depth-first order
@@ -374,8 +378,12 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       action: []
     };
 
+    // Track parent-child relationships for better alignment
+    const parentChildMap: Record<string, string[]> = {};
+    const childParentMap: Record<string, string> = {};
+    
     // Depth-first traversal to maintain parent-child ordering
-    const dfsCollectByLevel = (nodeId: string) => {
+    const dfsCollectByLevel = (nodeId: string, parentId?: string) => {
       const node = FUNCTIONAL_GRAPH.nodes[nodeId];
       if (!node) return;
       
@@ -387,6 +395,15 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       // Only add if visible and not already added
       if (visibleNodes.has(nodeId) && !nodesByLevel[node.level as HierarchyLevel].includes(nodeId)) {
         nodesByLevel[node.level as HierarchyLevel].push(nodeId);
+        
+        // Track parent-child relationship
+        if (parentId) {
+          if (!parentChildMap[parentId]) {
+            parentChildMap[parentId] = [];
+          }
+          parentChildMap[parentId].push(nodeId);
+          childParentMap[nodeId] = parentId;
+        }
       }
       
       // For product nodes, only traverse to direct outcome children (not through workflows)
@@ -398,7 +415,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         children.forEach((childId: string) => {
           const childNode = FUNCTIONAL_GRAPH.nodes[childId];
           if (childNode && childNode.level === 'outcome' && visibleNodes.has(childId)) {
-            dfsCollectByLevel(childId);
+            dfsCollectByLevel(childId, nodeId);
           }
         });
       } else {
@@ -408,7 +425,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           const childNode = FUNCTIONAL_GRAPH.nodes[childId];
           // Skip workflow nodes during traversal
           if (childNode && childNode.level !== 'workflow' && visibleNodes.has(childId)) {
-            dfsCollectByLevel(childId);
+            dfsCollectByLevel(childId, nodeId);
           }
         });
       }
@@ -419,7 +436,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     roots.sort(); // Ensure consistent ordering
     (roots as string[]).forEach((rootId: string) => {
       if (visibleNodes.has(rootId)) {
-        dfsCollectByLevel(rootId);
+        dfsCollectByLevel(rootId, undefined);
       }
     });
     
@@ -434,53 +451,77 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       // Sort workflow nodes for consistent ordering
       nodesByLevel.workflow.sort();
     }
-
-    // First pass: calculate the maximum width needed
-    let maxWidth = 0;
-    const levelWidths: Record<string, number> = {};
     
-    Object.entries(nodesByLevel).forEach(([level, nodeIds]: [string, string[]]) => {
-      if (nodeIds.length === 0) {
-        levelWidths[level] = 0;
-        return;
-      }
+    // Sort nodes within each level to maintain parent-child proximity
+    // This helps keep children aligned under their parents
+    const sortNodesByParentPosition = (level: HierarchyLevel) => {
+      const nodes = nodesByLevel[level];
+      if (nodes.length <= 1) return;
       
-      // Calculate the total width needed for this level
-      const totalRequiredWidth = nodeIds.length * NODE_WIDTH + (nodeIds.length - 1) * MIN_NODE_SPACING;
-      levelWidths[level] = totalRequiredWidth;
-      
-      // Update max width
-      maxWidth = Math.max(maxWidth, totalRequiredWidth);
-    });
-    
-    // Add margins to the max width, including space for labels
-    const graphWidth = maxWidth + 2 * MARGIN + LABEL_MARGIN;
-
-    // Second pass: position nodes centered within the graph width
-    Object.entries(nodesByLevel).forEach(([level, nodeIds]: [string, string[]]) => {
-      if (nodeIds.length === 0) return;
-      
-      const levelWidth = levelWidths[level];
-      const spacing = NODE_WIDTH + MIN_NODE_SPACING;
-      
-      // Calculate starting X position
-      // Center nodes in the available space after the label margin
-      const availableWidth = graphWidth - LABEL_MARGIN - MARGIN;
-      const centeredStartX = LABEL_MARGIN + (availableWidth - levelWidth) / 2 + NODE_WIDTH / 2;
-      const startX = Math.max(LABEL_MARGIN, centeredStartX);
-      
-      // Position each node in the order they were collected (depth-first)
-      nodeIds.forEach((nodeId: string, index: number) => {
-        const node = FUNCTIONAL_GRAPH.nodes[nodeId];
-        if (node) {
-          positions[nodeId] = {
-            x: startX + (index * spacing),
-            y: levelY[level as keyof typeof levelY],
-            node: FUNCTIONAL_NODES[nodeId], // Keep using old format for compatibility
-            visible: true
-          };
+      // Group nodes by their parent
+      const nodeGroups: Record<string, string[]> = { 'no-parent': [] };
+      nodes.forEach(nodeId => {
+        const parentId = childParentMap[nodeId];
+        if (parentId) {
+          if (!nodeGroups[parentId]) {
+            nodeGroups[parentId] = [];
+          }
+          nodeGroups[parentId].push(nodeId);
+        } else {
+          nodeGroups['no-parent'].push(nodeId);
         }
       });
+      
+      // Rebuild the level array with grouped nodes
+      const sortedNodes: string[] = [];
+      
+      // First add nodes without parents
+      sortedNodes.push(...nodeGroups['no-parent']);
+      
+      // Then add nodes grouped by parent (in parent order from previous level)
+      const parentLevel = level === 'outcome' ? 'product' :
+                          level === 'scenario' ? 'outcome' :
+                          level === 'step' ? 'scenario' :
+                          level === 'action' ? 'step' : null;
+      
+      if (parentLevel && nodesByLevel[parentLevel]) {
+        nodesByLevel[parentLevel].forEach(parentId => {
+          if (nodeGroups[parentId]) {
+            sortedNodes.push(...nodeGroups[parentId]);
+          }
+        });
+      }
+      
+      // Replace the level array with sorted version
+      nodesByLevel[level] = sortedNodes;
+    };
+    
+    // Sort each level to maintain parent-child alignment
+    (['outcome', 'scenario', 'step', 'action'] as HierarchyLevel[]).forEach(level => {
+      sortNodesByParentPosition(level);
+    });
+
+    // Prepare input for layout calculators
+    const layoutInput = {
+      nodesByLevel,
+      nodes: FUNCTIONAL_NODES,
+      parentChildMap,
+      childParentMap,
+      config: layoutConfig
+    };
+    
+    // Use compact branch layout
+    const layoutResult = calculateCompactBranchLayout(layoutInput);
+    
+    // Convert layout result to NodePosition format expected by the component
+    const positions: Record<string, NodePosition> = {};
+    Object.entries(layoutResult.positions).forEach(([nodeId, pos]) => {
+      positions[nodeId] = {
+        x: pos.x,
+        y: pos.y,
+        node: FUNCTIONAL_NODES[nodeId],
+        visible: visibleNodes.has(nodeId)
+      };
     });
 
     // Add positions for hidden nodes (for smooth transitions)
@@ -491,8 +532,18 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         const parentPos = parents.length > 0 ? positions[parents[0]] : null;
         const node = FUNCTIONAL_GRAPH.nodes[nodeId];
         
+        // Get level Y position based on node level
+        const levelY = {
+          product: layoutConfig.margin + 50,
+          workflow: layoutConfig.margin + 50 + layoutConfig.levelHeight,
+          outcome: layoutConfig.margin + 50 + layoutConfig.levelHeight * 2,
+          scenario: layoutConfig.margin + 50 + layoutConfig.levelHeight * 3,
+          step: layoutConfig.margin + 50 + layoutConfig.levelHeight * 4,
+          action: layoutConfig.margin + 50 + layoutConfig.levelHeight * 5
+        };
+        
         positions[nodeId] = {
-          x: parentPos ? parentPos.x : graphWidth / 2, // Center by default
+          x: parentPos ? parentPos.x : layoutResult.graphBounds.width / 2, // Center by default
           y: parentPos ? parentPos.y : levelY[node!.level as keyof typeof levelY],
           node: FUNCTIONAL_NODES[nodeId], // Keep using old format for compatibility
           visible: false
@@ -500,14 +551,155 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       }
     });
 
-    // Calculate graph bounds
-    const bounds = {
-      width: Math.max(graphWidth, 1000), // Minimum width of 1000
-      height: MARGIN * 2 + 50 + LEVEL_HEIGHT * 5 + 50 // Total height with margins (updated for workflow level)
-    };
+    return { nodePositions: positions, graphBounds: layoutResult.graphBounds };
+  }, [visibleNodes, showWorkflows, FUNCTIONAL_NODES, FUNCTIONAL_GRAPH.nodes, graphOps]);
 
-    return { nodePositions: positions, graphBounds: bounds };
-  }, [visibleNodes, showWorkflows]);
+  // Handle focus bounds calculation after diagram updates
+  useEffect(() => {
+    if (pendingFocusNode && nodePositions[pendingFocusNode]) {
+      // Calculate bounds for the branch starting from pendingFocusNode
+      const branchNodes = new Set<string>([pendingFocusNode]);
+      
+      // Collect all visible descendants
+      const addDescendants = (id: string) => {
+        const children = graphOps.getChildren(id);
+        children.forEach((childId: string) => {
+          if (visibleNodes.has(childId) && !branchNodes.has(childId)) {
+            branchNodes.add(childId);
+            if (expandedNodes.has(childId)) {
+              addDescendants(childId);
+            }
+          }
+        });
+      };
+      
+      if (expandedNodes.has(pendingFocusNode)) {
+        addDescendants(pendingFocusNode);
+      }
+      
+      // Calculate bounding box
+      let minX = Infinity, maxX = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
+      
+      branchNodes.forEach(id => {
+        const pos = nodePositions[id];
+        if (pos) {
+          const nodeHalfWidth = 70;
+          const nodeHalfHeight = 25;
+          minX = Math.min(minX, pos.x - nodeHalfWidth);
+          maxX = Math.max(maxX, pos.x + nodeHalfWidth);
+          minY = Math.min(minY, pos.y - nodeHalfHeight);
+          maxY = Math.max(maxY, pos.y + nodeHalfHeight);
+        }
+      });
+      
+      // Add some padding
+      const padding = 20;
+      minX -= padding;
+      maxX += padding;
+      minY -= padding;
+      maxY += padding;
+      
+      // Set the focus bounds for rendering
+      if (isFinite(minX) && isFinite(maxX) && isFinite(minY) && isFinite(maxY)) {
+        setFocusBounds({ minX, maxX, minY, maxY });
+        
+        // After setting bounds, calculate pan to center the rectangle
+        if (focusMode) {
+          // Calculate rectangle dimensions and center in SVG coordinates
+          const rectWidth = maxX - minX;
+          const rectHeight = maxY - minY;
+          const rectCenterX = (minX + maxX) / 2;
+          const rectCenterY = (minY + maxY) / 2;
+          
+          // Get viewport dimensions
+          const svgElement = document.querySelector('svg');
+          const viewportWidth = svgElement?.clientWidth || 800;
+          const viewportHeight = svgElement?.clientHeight || 600;
+          
+          // Get viewBox dimensions
+          const viewBoxAttr = svgElement?.getAttribute('viewBox') || '0 0 1600 700';
+          const [, , vbWidth, vbHeight] = viewBoxAttr.split(' ').map(Number);
+          
+          // STEP 1: Calculate pan needed to center the rectangle (at current zoom level)
+          // With transform="translate(pan.x, pan.y) scale(zoom)"
+          // The pan is in SVG coordinates, applied before scale
+          // After transform, an SVG point (x,y) appears at screen position: ((x + pan) * zoom)
+          // To center rectCenter at viewport center: (rectCenter + pan) * zoom = viewportCenter
+          // Therefore: pan = (viewportCenter / zoom) - rectCenter
+          
+          // But viewport dimensions are in screen pixels, need to map to SVG coords
+          const viewportCenterX = viewportWidth / 2;
+          const viewportCenterY = viewportHeight / 2;
+          
+          // Map viewport center to SVG coordinates considering viewBox
+          const svgScale = vbWidth / viewportWidth;
+          const svgViewportCenterX = viewportCenterX * svgScale;
+          const svgViewportCenterY = viewportCenterY * svgScale * (vbHeight / vbWidth);
+          
+          // Calculate pan in SVG coordinates
+          const targetPanX = (svgViewportCenterX / zoom) - rectCenterX;
+          const targetPanY = (svgViewportCenterY / zoom) - rectCenterY;
+          
+          
+          // Apply the pan first
+          setPan({ x: targetPanX, y: targetPanY });
+          
+          // STEP 2: After pan is applied, calculate zoom (but don't apply it yet)
+          setTimeout(() => {
+            // Get current pan values after step 1
+            const currentPanX = targetPanX;
+            const currentPanY = targetPanY;
+            const currentZoom = zoom;
+            
+            // Define margin percentage (e.g., 0.85 means the rectangle should fit in 85% of viewport)
+            const marginFactor = 0.85;
+            
+            // Calculate the scale factor from SVG coordinates to viewport pixels
+            const svgToViewportScaleX = viewportWidth / vbWidth;
+            const svgToViewportScaleY = viewportHeight / vbHeight;
+            
+            // Calculate zoom needed to fit the rectangle within the viewport with margin
+            const zoomToFitWidth = (viewportWidth * marginFactor) / (rectWidth * svgToViewportScaleX);
+            const zoomToFitHeight = (viewportHeight * marginFactor) / (rectHeight * svgToViewportScaleY);
+            
+            // Take the smaller zoom to ensure both dimensions fit
+            let targetZoom = Math.min(zoomToFitWidth, zoomToFitHeight);
+            
+            // Clamp zoom to reasonable bounds
+            targetZoom = Math.max(0.3, Math.min(targetZoom, 10));
+            
+            // Calculate zoom ratio
+            const zoomRatio = targetZoom / currentZoom;
+            
+            // When zooming from center, we need to adjust pan
+            // The viewport center in screen coordinates
+            const viewportCenterScreenX = viewportWidth / 2;
+            const viewportCenterScreenY = viewportHeight / 2;
+            
+            // What point in SVG space is at the viewport center before zoom?
+            const svgPointAtCenterX = (viewportCenterScreenX - currentPanX) / currentZoom;
+            const svgPointAtCenterY = (viewportCenterScreenY - currentPanY) / currentZoom;
+            
+            // After zoom, where would this SVG point be in screen space?
+            const newScreenX = svgPointAtCenterX * targetZoom;
+            const newScreenY = svgPointAtCenterY * targetZoom;
+            
+            // Calculate new pan to keep that point at viewport center
+            const adjustedPanX = viewportCenterScreenX - newScreenX;
+            const adjustedPanY = viewportCenterScreenY - newScreenY;
+            
+            
+            // DON'T APPLY ZOOM - calculations only for future use
+          }, 100); // Small delay to let the pan complete
+        }
+      }
+      
+      // Clear the pending focus node
+      setPendingFocusNode(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFocusNode, nodePositions, expandedNodes, visibleNodes, focusMode, zoom]); // Added focusMode and zoom as dependencies
 
   // Calculate confidence based on user context
   const getNodeConfidence = (nodeId: string): number => {
@@ -588,40 +780,70 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   // Zoom handlers - zoom from center of viewport
   const handleZoomIn = () => {
     const scale = 1.2;
-    const newZoom = Math.min(zoom * scale, 3); // Max zoom 3x
+    const newZoom = Math.min(zoom * scale, 10); // Max zoom 10x
     
-    // Get viewport dimensions
-    const viewportWidth = 800; // Approximate viewport width
-    const viewportHeight = 600; // Approximate viewport height
+    // Get actual viewport dimensions from SVG element
+    const svgElement = document.querySelector('svg');
+    const viewportWidth = svgElement?.clientWidth || 800;
+    const viewportHeight = svgElement?.clientHeight || 600;
+    
+    // Get viewBox to understand SVG coordinate system
+    const viewBoxAttr = svgElement?.getAttribute('viewBox') || '0 0 1600 700';
+    const [, , vbWidth, vbHeight] = viewBoxAttr.split(' ').map(Number);
+    
+    // Calculate viewport center in screen pixels
     const centerX = viewportWidth / 2;
     const centerY = viewportHeight / 2;
     
-    // Adjust pan to keep center point fixed
-    setPan(prevPan => ({
-      x: centerX - (centerX - prevPan.x) * scale,
-      y: centerY - (centerY - prevPan.y) * scale
-    }));
+    // Convert viewport center to SVG coordinates (considering viewBox)
+    const svgCenterX = (centerX / viewportWidth) * vbWidth;
+    const svgCenterY = (centerY / viewportHeight) * vbHeight;
     
+    // With transform="translate(pan.x, pan.y) scale(zoom)", 
+    // the formula to keep a point fixed during zoom is:
+    // newPan = svgCenter - (svgCenter - oldPan) * (newZoom / oldZoom)
+    const zoomRatio = newZoom / zoom;
+    const newPanX = svgCenterX - (svgCenterX - pan.x) * zoomRatio;
+    const newPanY = svgCenterY - (svgCenterY - pan.y) * zoomRatio;
+    
+    
+    // Apply zoom and adjusted pan
     setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
   };
 
   const handleZoomOut = () => {
     const scale = 1 / 1.2;
     const newZoom = Math.max(zoom * scale, 0.3); // Min zoom 0.3x
     
-    // Get viewport dimensions
-    const viewportWidth = 800; // Approximate viewport width
-    const viewportHeight = 600; // Approximate viewport height
+    // Get actual viewport dimensions from SVG element
+    const svgElement = document.querySelector('svg');
+    const viewportWidth = svgElement?.clientWidth || 800;
+    const viewportHeight = svgElement?.clientHeight || 600;
+    
+    // Get viewBox to understand SVG coordinate system
+    const viewBoxAttr = svgElement?.getAttribute('viewBox') || '0 0 1600 700';
+    const [, , vbWidth, vbHeight] = viewBoxAttr.split(' ').map(Number);
+    
+    // Calculate viewport center in screen pixels
     const centerX = viewportWidth / 2;
     const centerY = viewportHeight / 2;
     
-    // Adjust pan to keep center point fixed
-    setPan(prevPan => ({
-      x: centerX - (centerX - prevPan.x) * scale,
-      y: centerY - (centerY - prevPan.y) * scale
-    }));
+    // Convert viewport center to SVG coordinates (considering viewBox)
+    const svgCenterX = (centerX / viewportWidth) * vbWidth;
+    const svgCenterY = (centerY / viewportHeight) * vbHeight;
     
+    // With transform="translate(pan.x, pan.y) scale(zoom)", 
+    // the formula to keep a point fixed during zoom is:
+    // newPan = svgCenter - (svgCenter - oldPan) * (newZoom / oldZoom)
+    const zoomRatio = newZoom / zoom;
+    const newPanX = svgCenterX - (svgCenterX - pan.x) * zoomRatio;
+    const newPanY = svgCenterY - (svgCenterY - pan.y) * zoomRatio;
+    
+    
+    // Apply zoom and adjusted pan
     setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
   };
 
   const handleZoomReset = () => {
@@ -633,17 +855,34 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button === 0) { // Left click only
       setIsDragging(true);
-      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      // Store just the mouse position when starting drag
+      setDragStart({ 
+        x: e.clientX, 
+        y: e.clientY 
+      });
       e.preventDefault();
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (isDragging) {
-      setPan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
-      });
+      // Calculate the mouse movement delta
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+      
+      // Scale the pan movement based on zoom level
+      // When zoomed in, the graph is larger, so we need to pan more to keep up with the mouse
+      // When zoomed out, the graph is smaller, so we pan less
+      const scaledDeltaX = deltaX * Math.max(1, zoom * 0.8); // Scale up when zoomed in
+      const scaledDeltaY = deltaY * Math.max(1, zoom * 0.8);
+      
+      setPan(prevPan => ({
+        x: prevPan.x + scaledDeltaX,
+        y: prevPan.y + scaledDeltaY
+      }));
+      
+      // Update dragStart for next move event
+      setDragStart({ x: e.clientX, y: e.clientY });
     }
   };
 
@@ -661,7 +900,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     
     // Calculate zoom factor
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.3, Math.min(3, zoom * delta));
+    const newZoom = Math.max(0.3, Math.min(10, zoom * delta));
     const scale = newZoom / zoom;
     
     // Adjust pan to keep the point under the mouse cursor fixed
@@ -674,6 +913,111 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   };
 
   // Toggle node expansion with configurable peer collapse behavior using graph model
+  // Focus on a branch starting from a specific node
+  const focusOnBranch = (nodeId: string) => {
+    // Get fresh node positions from the current render
+    const currentPositions = nodePositions;
+    
+    if (!currentPositions[nodeId]) {
+      return;
+    }
+    
+    // ALWAYS start from base state (zoom=1, pan=0,0)
+    // This ensures consistent calculations every time
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    
+    // Small delay to let the reset apply
+    setTimeout(() => {
+      // Collect all visible nodes in the branch
+      const branchNodes = new Set<string>([nodeId]);
+      
+      const addDescendants = (id: string) => {
+        const children = graphOps.getChildren(id);
+        children.forEach((childId: string) => {
+          if (visibleNodes.has(childId) && !branchNodes.has(childId)) {
+            branchNodes.add(childId);
+            if (expandedNodes.has(childId)) {
+              addDescendants(childId);
+            }
+          }
+        });
+      };
+      
+      if (expandedNodes.has(nodeId)) {
+        addDescendants(nodeId);
+      }
+      
+      // Calculate bounding box in SVG coordinates
+      let minX = Infinity, maxX = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
+      
+      branchNodes.forEach(id => {
+        const pos = currentPositions[id];
+        if (pos) {
+          const nodeHalfWidth = 70;
+          const nodeHalfHeight = 25;
+          minX = Math.min(minX, pos.x - nodeHalfWidth);
+          maxX = Math.max(maxX, pos.x + nodeHalfWidth);
+          minY = Math.min(minY, pos.y - nodeHalfHeight);
+          maxY = Math.max(maxY, pos.y + nodeHalfHeight);
+        }
+      });
+      
+      if (!isFinite(minX) || !isFinite(maxX)) return;
+      
+      // Add padding around the branch
+      const padding = 30;
+      minX -= padding;
+      maxX += padding;
+      minY -= padding;
+      maxY += padding;
+      
+      const branchWidth = maxX - minX;
+      const branchHeight = maxY - minY;
+      const branchCenterX = (minX + maxX) / 2;
+      const branchCenterY = (minY + maxY) / 2;
+      
+      // Get viewport dimensions
+      const svgElement = document.querySelector('svg');
+      const viewportWidth = svgElement?.clientWidth || 800;
+      const viewportHeight = svgElement?.clientHeight || 600;
+      
+      // Get viewBox dimensions
+      const viewBoxAttr = svgElement?.getAttribute('viewBox') || '0 0 1600 700';
+      const [, , vbWidth, vbHeight] = viewBoxAttr.split(' ').map(Number);
+      
+      // How SVG units map to screen pixels at zoom=1
+      const svgToScreenScale = Math.min(viewportWidth / vbWidth, viewportHeight / vbHeight);
+      
+      // Calculate zoom to fit branch in 85% of viewport (leaving margins)
+      const targetWidth = viewportWidth * 0.85;
+      const targetHeight = viewportHeight * 0.85;
+      
+      const zoomToFitWidth = targetWidth / (branchWidth * svgToScreenScale);
+      const zoomToFitHeight = targetHeight / (branchHeight * svgToScreenScale);
+      
+      // Use the smaller zoom to ensure both dimensions fit
+      // Cap at 1.8 to avoid too much zoom
+      const targetZoom = Math.min(zoomToFitWidth, zoomToFitHeight, 1.8);
+      
+      // Don't zoom out too much
+      const finalZoom = Math.max(targetZoom, 0.5);
+      
+      // Calculate pan to center the branch
+      const screenCenterX = branchCenterX * svgToScreenScale * finalZoom;
+      const screenCenterY = branchCenterY * svgToScreenScale * finalZoom;
+      
+      const targetPanX = (viewportWidth / 2) - screenCenterX;
+      const targetPanY = (viewportHeight / 2) - screenCenterY;
+      
+      
+      // Apply the transform
+      setZoom(finalZoom);
+      setPan({ x: targetPanX, y: targetPanY });
+    }, 50);
+  };
+
   const toggleNodeExpansion = (nodeId: string) => {
     const children = graphOps.getChildren(nodeId);
     if (children.length === 0) return;
@@ -687,6 +1031,8 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       true;
     
     if (!hasMatchedChildren) return;
+    
+    const isExpanding = !expandedNodes.has(nodeId);
     
     setExpandedNodes(prev => {
       const newSet = new Set(prev);
@@ -765,6 +1111,19 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       
       return newSet;
     });
+    
+    // Set pending focus node to calculate bounds after re-render
+    if (isExpanding) {
+      setPendingFocusNode(nodeId);
+    } else {
+      // When collapsing, clear the focus bounds
+      setFocusBounds(null);
+      // Optionally focus on parent
+      const parents = graphOps.getParents(nodeId);
+      if (parents.length > 0) {
+        setPendingFocusNode(parents[0]);
+      }
+    }
   };
 
   // Render connections between nodes using the graph model
@@ -885,6 +1244,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       }
     }
     
+    
     // Determine if this node should show overlap border
     let showOverlapBorder = false;
     
@@ -967,16 +1327,18 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         left: '50%',
         transform: 'translateX(-50%)',
         padding: '4px 12px',
-        background: 'rgba(102, 126, 234, 0.1)',
+        background: focusMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(102, 126, 234, 0.1)',
         borderRadius: 20,
         fontSize: 11,
-        color: '#667eea',
+        color: focusMode ? '#3B82F6' : '#667eea',
         fontWeight: 'bold',
         zIndex: 10
       }}>
-        {selectedIntent ? 
-          `Showing matched path • ${expandedNodes.size} nodes expanded • Zoom: ${Math.round(zoom * 100)}%` :
-          `Click nodes to expand/collapse • ${expandedNodes.size} nodes expanded • ${expansionMode === 'single' ? 'Single' : 'Multiple'} mode • Zoom: ${Math.round(zoom * 100)}%`
+        {focusMode ? 
+          `🎯 Auto-Focus Mode: View automatically adjusts when you expand/collapse nodes` :
+          selectedIntent ? 
+            `Showing matched path • ${expandedNodes.size} nodes expanded • Zoom: ${Math.round(zoom * 100)}%` :
+            `Click nodes to expand/collapse • ${expandedNodes.size} nodes expanded • ${expansionMode === 'single' ? 'Single' : 'Multiple'} mode • Zoom: ${Math.round(zoom * 100)}%`
         }
       </div>
 
@@ -1046,6 +1408,34 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           title="Zoom Out (Scroll Down)"
         >
           −
+        </button>
+        <div style={{ 
+          borderTop: '1px solid #ddd', 
+          margin: '4px 6px',
+          opacity: 0.5
+        }} />
+        <button
+          onClick={() => {
+            setFocusMode(!focusMode);
+          }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: focusMode ? '2px solid #3B82F6' : '1px solid #ddd',
+            background: focusMode ? '#3B82F6' : 'white',
+            color: focusMode ? 'white' : '#333',
+            cursor: 'pointer',
+            fontSize: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: focusMode ? '0 4px 8px rgba(59,130,246,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+            transition: 'all 0.2s ease'
+          }}
+          title={focusMode ? "Exit Auto-Focus Mode" : "Auto-Focus Mode - Automatically adjusts view when expanding/collapsing"}
+        >
+          🎯
         </button>
       </div>
 

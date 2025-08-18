@@ -26,6 +26,10 @@ let domainConfig: any = {};
 // Load domain synchronously (this is a workaround for now)
 if (domainId === 'healthcare') {
   domainConfig = require('./domains/healthcare');
+} else if (domainId === 'ecommerce') {
+  domainConfig = require('./domains/ecommerce');
+} else if (domainId === 'enterprise') {
+  domainConfig = require('./domains/enterprise');
 } else {
   domainConfig = require('./domains/cision');
 }

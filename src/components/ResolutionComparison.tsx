@@ -12,6 +12,7 @@ interface ResolutionComparisonProps {
   generatedIntent?: GeneratedIntent | null;
   recentActions?: RecentAction[];
   onSelectedRecentIntentChange?: (action: RecentAction | null) => void;
+  onClearRecentIntents?: () => void;
   graphStateVersion?: number;
   currentToggles?: {
     showRationalized: boolean;
@@ -28,6 +29,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
   generatedIntent,
   recentActions = [],
   onSelectedRecentIntentChange,
+  onClearRecentIntents,
   graphStateVersion = 0,
   currentToggles
 }) => {
@@ -593,13 +595,39 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
         }}>
           <span>Recent Intents</span>
           {recentActions.length > 0 && (
-            <span style={{ 
-              fontSize: 9, 
-              color: '#999',
-              fontWeight: 'normal'
-            }}>
-              Last 5
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ 
+                fontSize: 9, 
+                color: '#999',
+                fontWeight: 'normal'
+              }}>
+                Last 5
+              </span>
+              {onClearRecentIntents && (
+                <button
+                  onClick={() => {
+                    setSelectedRecentIntent(null);
+                    onClearRecentIntents();
+                  }}
+                  style={{
+                    padding: '2px 6px',
+                    fontSize: 9,
+                    background: '#ff5252',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    transition: 'background 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#ff1744'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#ff5252'}
+                  title="Clear all recent intents"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           )}
         </div>
         

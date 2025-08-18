@@ -238,5 +238,192 @@ export const USER_INTENTS: UserIntent[] = [
     entryNode: 'action-calculate-copay-scheduling',
     entryLevel: 'action',
     ambiguous: false
+  },
+
+  // ===== UNAMBIGUOUS INTENTS FOR EACH PRODUCT =====
+  
+  // --- SCHEDULING PRODUCT SPECIFIC ---
+  {
+    id: 'intent-resource-optimization',
+    text: 'Optimize clinic resource allocation and scheduling',
+    entryNode: 'scenario-resource-optimization',
+    entryLevel: 'scenario',
+    ambiguous: false
+  },
+  {
+    id: 'intent-manage-calendar',
+    text: 'Manage provider calendars and availability',
+    entryNode: 'step-manage-calendar-scheduling',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-workflow-automation',
+    text: 'Automate scheduling workflows',
+    entryNode: 'scenario-workflow-automation',
+    entryLevel: 'scenario',
+    ambiguous: false
+  },
+  {
+    id: 'intent-track-noshows',
+    text: 'Track and manage appointment no-shows',
+    entryNode: 'step-track-noshows-ehr',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-confirm-copay',
+    text: 'Confirm patient copayment amounts',
+    entryNode: 'step-confirm-copay-scheduling',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  
+  // --- LAB PRODUCT SPECIFIC ---
+  {
+    id: 'intent-quality-control',
+    text: 'Perform laboratory quality control checks',
+    entryNode: 'scenario-quality-control',
+    entryLevel: 'scenario',
+    ambiguous: false
+  },
+  {
+    id: 'intent-process-specimens',
+    text: 'Process lab specimens and samples',
+    entryNode: 'step-process-specimens-lab',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-interpret-findings',
+    text: 'Interpret laboratory test findings',
+    entryNode: 'step-interpret-findings-lab',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-notify-providers-lab',
+    text: 'Notify providers of critical lab results',
+    entryNode: 'step-notify-providers-lab',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-track-status-lab',
+    text: 'Track laboratory test status',
+    entryNode: 'step-track-status-lab',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  
+  // --- BILLING PRODUCT SPECIFIC ---
+  {
+    id: 'intent-payment-collection',
+    text: 'Manage payment collection and processing',
+    entryNode: 'scenario-payment-collection',
+    entryLevel: 'scenario',
+    ambiguous: false
+  },
+  {
+    id: 'intent-billing-compliance',
+    text: 'Ensure billing regulatory compliance',
+    entryNode: 'scenario-billing-compliance',
+    entryLevel: 'scenario',
+    ambiguous: false
+  },
+  {
+    id: 'intent-check-eligibility',
+    text: 'Check patient insurance eligibility',
+    entryNode: 'step-check-eligibility-billing',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-obtain-authorization',
+    text: 'Obtain prior authorization for procedures',
+    entryNode: 'step-obtain-authorization-billing',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  
+  // --- PHARMACY PRODUCT SPECIFIC ---
+  {
+    id: 'intent-drug-interaction',
+    text: 'Check for drug interactions',
+    entryNode: 'scenario-drug-interaction',
+    entryLevel: 'scenario',
+    ambiguous: false
+  },
+  {
+    id: 'intent-inventory-management',
+    text: 'Manage pharmacy inventory',
+    entryNode: 'scenario-inventory-management',
+    entryLevel: 'scenario',
+    ambiguous: false
+  },
+  {
+    id: 'intent-dispense-medications',
+    text: 'Dispense medications to patients',
+    entryNode: 'step-dispense-medications',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-track-adherence',
+    text: 'Track medication adherence',
+    entryNode: 'step-track-adherence',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-manage-refills',
+    text: 'Manage prescription refills',
+    entryNode: 'step-manage-refills-pharmacy',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-verify-prescriptions',
+    text: 'Verify prescription details and dosage',
+    entryNode: 'step-verify-prescriptions-pharmacy',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-monitor-adherence',
+    text: 'Monitor medication adherence',
+    entryNode: 'step-monitor-adherence-pharmacy',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  
+  // --- EHR PRODUCT SPECIFIC (Additional) ---
+  {
+    id: 'intent-treatment-planning',
+    text: 'Create patient treatment plan',
+    entryNode: 'scenario-treatment-planning',
+    entryLevel: 'scenario',
+    ambiguous: false
+  },
+  {
+    id: 'intent-generate-reports',
+    text: 'Generate clinical reports',
+    entryNode: 'step-generate-reports-ehr',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-document-findings',
+    text: 'Document clinical findings',
+    entryNode: 'step-document-findings-ehr',
+    entryLevel: 'step',
+    ambiguous: false
+  },
+  {
+    id: 'intent-document-appointment',
+    text: 'Document appointment notes and outcomes',
+    entryNode: 'step-document-appointment-ehr',
+    entryLevel: 'step',
+    ambiguous: false
   }
 ];

@@ -33,26 +33,61 @@ function AppContent() {
         {currentDomain ? (
           // Domain-specific header for demo page
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-              {/* Back button and main title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {/* Back button */}
               <div 
                 style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
                   cursor: 'pointer',
-                  transition: 'opacity 0.2s ease'
+                  transition: 'opacity 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 40,
+                  height: 40,
+                  borderRadius: 8,
+                  background: '#f5f5f5',
+                  border: '1px solid #e0e0e0'
                 }}
                 onClick={() => navigate('/')}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#667eea';
+                  e.currentTarget.style.borderColor = '#667eea';
+                  const arrow = e.currentTarget.querySelector('span');
+                  if (arrow) arrow.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#f5f5f5';
+                  e.currentTarget.style.borderColor = '#e0e0e0';
+                  const arrow = e.currentTarget.querySelector('span');
+                  if (arrow) arrow.style.color = '#667eea';
+                }}
                 title="Back to Home"
               >
-                <h1 style={{ margin: 0, fontSize: 24, color: '#333' }}>
-                  <span style={{ marginRight: 10, color: '#667eea' }}>←</span>
+                <span style={{ fontSize: 20, color: '#667eea', lineHeight: 1 }}>←</span>
+              </div>
+              
+              {/* Title and subtitle properly aligned */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 2
+              }}>
+                <h1 style={{ 
+                  margin: 0, 
+                  fontSize: 24, 
+                  color: '#333',
+                  lineHeight: 1.2
+                }}>
                   Breeze.AI Semantic Engineering
                 </h1>
-                <p style={{ margin: 0, color: '#667eea', fontSize: 14, fontWeight: '500' }}>
+                <p style={{ 
+                  margin: 0, 
+                  color: '#667eea', 
+                  fontSize: 14, 
+                  fontWeight: '500',
+                  lineHeight: 1
+                }}>
                   Intent Disambiguation Demo
                 </p>
               </div>
@@ -135,7 +170,7 @@ function AppContent() {
                 Breeze.AI Semantic Engineering
               </h1>
               <p style={{ margin: 0, color: '#667eea', fontSize: 14, fontWeight: '500' }}>
-                Multi-Domain Intent Disambiguation Platform
+                Multi-Domain Intent Disambiguation Methodology
               </p>
             </div>
             <p style={{ margin: 0, color: '#666', fontSize: 13 }}>

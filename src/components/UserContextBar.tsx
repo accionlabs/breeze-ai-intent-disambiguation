@@ -8,6 +8,7 @@ interface UserContextBarProps {
   onContextChange: (contextId: string) => void;
   currentContextId: string;
   recentActions?: RecentAction[];
+  onClearActions?: () => void;
 }
 
 const UserContextBar: React.FC<UserContextBarProps> = ({ 
@@ -15,7 +16,8 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
   availableContexts, 
   onContextChange,
   currentContextId,
-  recentActions = [] 
+  recentActions = [],
+  onClearActions
 }) => {
   const formatTimestamp = (timestamp: number) => {
     const minutes = Math.floor((Date.now() - timestamp) / 60000);
@@ -181,8 +183,31 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
           paddingTop: 12,
           borderTop: '1px solid #e0e0e0'
         }}>
-          <div style={{ fontSize: 11, color: '#666', marginBottom: 8, fontWeight: 'bold' }}>
-            RECENT ACTIONS:
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>
+              RECENT ACTIONS:
+            </span>
+            {recentActions.length > 0 && onClearActions && (
+              <button
+                onClick={onClearActions}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: 10,
+                  background: '#ff5252',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#ff1744'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#ff5252'}
+                title="Clear all recent actions"
+              >
+                Clear History
+              </button>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {recentActions.length > 0 ? (

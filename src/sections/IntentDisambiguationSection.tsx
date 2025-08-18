@@ -5,6 +5,7 @@ import HierarchyVisualization, { ExpansionMode } from '../components/HierarchyVi
 import ResolutionComparison from '../components/ResolutionComparison';
 import { GeneratedIntent, getTopMatches } from '../utils/intentMatcher';
 import { useDomainConfig } from '../hooks/useDomainConfig';
+import { processRationalization, isNodeOrAncestorDuplicate, getDuplicateNodesFromAlternatives } from '../utils/rationalizationProcessor';
 import {
   Resolution,
   UserContext,
@@ -62,9 +63,24 @@ const IntentDisambiguationSection: React.FC = () => {
   // Get config values (with defaults to avoid hooks after return)
   const USER_INTENTS = domainConfig?.USER_INTENTS || [];
   const SAMPLE_CONTEXTS = domainConfig?.SAMPLE_CONTEXTS || {};
-  const FUNCTIONAL_NODES = domainConfig?.FUNCTIONAL_NODES || {};
+  const FUNCTIONAL_NODES_RAW = domainConfig?.FUNCTIONAL_NODES || {};
   const RATIONALIZED_NODE_ALTERNATIVES = domainConfig?.RATIONALIZED_NODE_ALTERNATIVES || {};
   const graphOps = domainConfig?.graphOps || null;
+
+  // Process nodes for rationalization when needed
+  const FUNCTIONAL_NODES = useMemo(() => {
+    // Only process for enterprise domain when rationalization is on
+    if (showRationalized && domainConfig?.DOMAIN_NAME === 'Enterprise Operations') {
+      const result = processRationalization(
+        FUNCTIONAL_NODES_RAW, 
+        showRationalized,
+        RATIONALIZED_NODE_ALTERNATIVES
+      );
+      // Warnings and duplicate children are now handled internally
+      return result.processedNodes;
+    }
+    return FUNCTIONAL_NODES_RAW;
+  }, [FUNCTIONAL_NODES_RAW, showRationalized, domainConfig?.DOMAIN_NAME, RATIONALIZED_NODE_ALTERNATIVES]);
 
   const currentContext = currentContextId && SAMPLE_CONTEXTS ? SAMPLE_CONTEXTS[currentContextId] : null;
 
@@ -286,6 +302,12 @@ const IntentDisambiguationSection: React.FC = () => {
           onContextChange={handleContextChange}
           currentContextId={currentContextId}
           recentActions={(recentActionsByPersona[currentContextId] || []).filter((action: any) => action.success)}
+          onClearActions={() => {
+            setRecentActionsByPersona(prev => ({
+              ...prev,
+              [currentContextId]: []
+            }));
+          }}
         />
       )}
 
@@ -336,6 +358,10 @@ const IntentDisambiguationSection: React.FC = () => {
               .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
               .slice(0, 5)
           }
+          onClearRecentIntents={() => {
+            // Clear all recent actions for all personas
+            setRecentActionsByPersona({});
+          }}
           onSelectedRecentIntentChange={(selectedAction) => {
             // Pass the selected recent action to hierarchy visualization
             setSelectedRecentAction(selectedAction);
@@ -575,25 +601,6 @@ function calculateResolution(
   
   // Check if the node exists
   if (!entryNode) {
-    // Check if there are duplicate nodes when rationalization is off
-    const duplicateNodes = Object.keys(FUNCTIONAL_NODES).filter((nodeId: string) => {
-      const node = FUNCTIONAL_NODES[nodeId];
-      return node && 
-             node.label === entryNodeId.split('-').slice(1, -1).join(' ').replace(/\b\w/g, l => l.toUpperCase()) &&
-             !nodeId.includes('-shared');
-    });
-    
-    if (duplicateNodes.length > 1 && !showRationalized) {
-      return {
-        entryNode: entryNodeId,
-        traversalPath: { upward: [], downward: [] },
-        selectedActions: [],
-        productActivation: [],
-        confidenceScore: 0,
-        reasoning: [`Resolution failed: Multiple matching nodes found (${duplicateNodes.length} products). Enable rationalization for unambiguous resolution.`]
-      };
-    }
-    
     return {
       entryNode: entryNodeId,
       traversalPath: { upward: [], downward: [] },
@@ -602,6 +609,202 @@ function calculateResolution(
       confidenceScore: 0,
       reasoning: ['Resolution failed: Entry node not found']
     };
+  }
+  
+  // Track if we resolved ambiguity using context
+  let contextResolvedAmbiguity = false;
+  let contextMessage = '';
+  
+  // When rationalization is OFF, check for duplicates in two ways:
+  // 1. Direct duplicates (same label as entry node)
+  // 2. Ancestor duplicates (parent nodes that have duplicates)
+  if (!showRationalized && !entryNodeId.includes('-shared') && !entryNodeId.includes('-workflow')) {
+    // Find all nodes with the same label (potential duplicates)
+    const sameLabel = entryNode.label.toLowerCase();
+    const duplicateNodes = Object.keys(FUNCTIONAL_NODES).filter((nodeId: string) => {
+      const node = FUNCTIONAL_NODES[nodeId];
+      return node && 
+             node.label.toLowerCase() === sameLabel &&
+             !nodeId.includes('-shared') &&
+             nodeId !== entryNodeId;  // Don't count the current node
+    });
+    
+    // If there are other nodes with the same label, it's ambiguous
+    if (duplicateNodes.length > 0) {
+      // When context is ON, try to resolve based on recent usage
+      if (context && recentActions.length > 0) {
+        // Count product usage in recent actions
+        const productWeights: Record<string, number> = {};
+        
+        recentActions.forEach((action: any) => {
+          const product = action.product.toLowerCase();
+          if (product !== 'n/a') {
+            productWeights[product] = (productWeights[product] || 0) + 1;
+          }
+        });
+        
+        // Check if current node's product is the most used
+        const currentNodeProducts = entryNode.products || [];
+        let currentNodeWeight = 0;
+        currentNodeProducts.forEach((product: string) => {
+          currentNodeWeight += productWeights[product.toLowerCase()] || 0;
+        });
+        
+        // Check weights for duplicate nodes
+        let maxWeight = currentNodeWeight;
+        let bestNodeId = entryNodeId;
+        
+        duplicateNodes.forEach((nodeId: string) => {
+          const node = FUNCTIONAL_NODES[nodeId];
+          const nodeProducts = node.products || [];
+          let nodeWeight = 0;
+          nodeProducts.forEach((product: string) => {
+            nodeWeight += productWeights[product.toLowerCase()] || 0;
+          });
+          
+          if (nodeWeight > maxWeight) {
+            maxWeight = nodeWeight;
+            bestNodeId = nodeId;
+          }
+        });
+        
+        // If we found a better node based on context, use it
+        if (bestNodeId !== entryNodeId && maxWeight > 0) {
+          const resolution = calculateResolution(bestNodeId, context, showRationalized, showWorkflows, recentActions, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES, graphOps);
+          resolution.reasoning.unshift(`Context-based resolution: Selected ${FUNCTIONAL_NODES[bestNodeId].products[0].toUpperCase()} version based on recent usage`);
+          return resolution;
+        }
+        
+        // If the current node is the best match based on context, continue with resolution but note it
+        if (bestNodeId === entryNodeId && maxWeight > 0) {
+          // Mark that context resolved the ambiguity
+          contextResolvedAmbiguity = true;
+          const productName = currentNodeProducts[0] || 'this product';
+          contextMessage = `Context-based resolution: Selected ${productName.toUpperCase()} version based on recent usage (${duplicateNodes.length + 1} products offer this functionality)`;
+          // Continue with normal resolution below
+        } else if (maxWeight === 0) {
+          // If context exists but doesn't help disambiguate, still fail
+          return {
+            entryNode: entryNodeId,
+            traversalPath: { upward: [], downward: [] },
+            selectedActions: [],
+            productActivation: [],
+            confidenceScore: 0,
+            reasoning: [`Resolution failed: Multiple products offer "${entryNode.label}" (found in ${duplicateNodes.length + 1} products). Enable rationalization to unify duplicate functionality.`]
+          };
+        }
+      } else {
+        // No context to help - fail with ambiguity error
+        return {
+          entryNode: entryNodeId,
+          traversalPath: { upward: [], downward: [] },
+          selectedActions: [],
+          productActivation: [],
+          confidenceScore: 0,
+          reasoning: [`Resolution failed: Multiple products offer "${entryNode.label}" (found in ${duplicateNodes.length + 1} products). Enable rationalization to unify duplicate functionality.`]
+        };
+      }
+    }
+    
+    // ALSO check if the node or any ancestor is a duplicate (using RATIONALIZED_NODE_ALTERNATIVES)
+    // This properly detects when a node is a duplicate or child of a duplicate
+    const isDuplicate = isNodeOrAncestorDuplicate(entryNodeId, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES);
+    
+    if (isDuplicate && duplicateNodes.length === 0) {  // Only handle if no direct label duplicates already found
+      // Find which ancestor is the duplicate for better error message
+      let duplicateAncestorLabel = entryNode.label;
+      let duplicateAncestorCount = 2; // Default count
+      let currentCheckNode = entryNode;
+      
+      // Get all duplicate nodes from alternatives
+      const allDuplicateNodes = getDuplicateNodesFromAlternatives(RATIONALIZED_NODE_ALTERNATIVES);
+      
+      // Check if current node itself is a duplicate
+      if (allDuplicateNodes.includes(entryNodeId)) {
+        duplicateAncestorLabel = entryNode.label;
+        // Count how many products have this duplicate
+        for (const alternatives of Object.values(RATIONALIZED_NODE_ALTERNATIVES)) {
+          if (Object.values(alternatives).includes(entryNodeId)) {
+            duplicateAncestorCount = Object.keys(alternatives).length;
+            break;
+          }
+        }
+      } else {
+        // Find which ancestor is the duplicate
+        while (currentCheckNode.parents && currentCheckNode.parents.length > 0) {
+          let foundDuplicate = false;
+          for (const parentId of currentCheckNode.parents) {
+            if (allDuplicateNodes.includes(parentId)) {
+              const parentNode = FUNCTIONAL_NODES[parentId];
+              if (parentNode) {
+                duplicateAncestorLabel = parentNode.label;
+                // Count alternatives
+                for (const alternatives of Object.values(RATIONALIZED_NODE_ALTERNATIVES)) {
+                  if (Object.values(alternatives).includes(parentId)) {
+                    duplicateAncestorCount = Object.keys(alternatives).length;
+                    break;
+                  }
+                }
+              }
+              foundDuplicate = true;
+              break;
+            }
+          }
+          if (foundDuplicate) break;
+          const nextParentId = currentCheckNode.parents[0];
+          currentCheckNode = FUNCTIONAL_NODES[nextParentId];
+          if (!currentCheckNode) break;
+        }
+      }
+      
+      // When context is ON, try to resolve based on recent usage
+      if (context && recentActions.length > 0) {
+        // Count product usage in recent actions
+        const productWeights: Record<string, number> = {};
+        
+        recentActions.forEach((action: any) => {
+          const product = action.product.toLowerCase();
+          if (product !== 'n/a') {
+            productWeights[product] = (productWeights[product] || 0) + 1;
+          }
+        });
+        
+        // Check if current node's product is preferred
+        const currentNodeProducts = entryNode.products || [];
+        let currentNodeWeight = 0;
+        currentNodeProducts.forEach((product: string) => {
+          currentNodeWeight += productWeights[product.toLowerCase()] || 0;
+        });
+        
+        if (currentNodeWeight > 0) {
+          // Context helps - mark it and continue
+          contextResolvedAmbiguity = true;
+          const productName = currentNodeProducts[0] || 'this product';
+          contextMessage = `Context-based resolution: Selected ${productName.toUpperCase()} path through ambiguous "${duplicateAncestorLabel}" (${duplicateAncestorCount} products offer this functionality)`;
+          // Continue with normal resolution
+        } else {
+          // Context doesn't help - fail
+          return {
+            entryNode: entryNodeId,
+            traversalPath: { upward: [], downward: [] },
+            selectedActions: [],
+            productActivation: [],
+            confidenceScore: 0,
+            reasoning: [`Resolution failed: Path goes through ambiguous functionality "${duplicateAncestorLabel}" (found in ${duplicateAncestorCount} products). Enable rationalization to unify duplicate functionality.`]
+          };
+        }
+      } else {
+        // No context to help - fail with ambiguity error
+        return {
+          entryNode: entryNodeId,
+          traversalPath: { upward: [], downward: [] },
+          selectedActions: [],
+          productActivation: [],
+          confidenceScore: 0,
+          reasoning: [`Resolution failed: Path goes through ambiguous functionality "${duplicateAncestorLabel}" (found in ${duplicateAncestorCount} products). Enable rationalization to unify duplicate functionality.`]
+        };
+      }
+    }
   }
   
   // Check if this is a workflow node but workflows are disabled
@@ -802,6 +1005,11 @@ function calculateResolution(
     });
   }
 
+  // Add context message if context resolved ambiguity
+  if (contextResolvedAmbiguity && contextMessage) {
+    reasoning.unshift(contextMessage);
+  }
+  
   return {
     entryNode: entryNodeId,
     traversalPath: {

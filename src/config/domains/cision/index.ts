@@ -5,7 +5,6 @@ export * from './domain';
 export * from './nodes';
 export * from './intents';
 export * from './contexts';
-export * from './rationalization';
 
 // Domain metadata
 export const DOMAIN_METADATA = {
