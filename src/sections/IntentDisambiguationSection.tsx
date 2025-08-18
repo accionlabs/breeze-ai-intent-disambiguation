@@ -371,6 +371,7 @@ const IntentDisambiguationSection: React.FC = () => {
             showRationalized: showRationalized,
             showWorkflows: showWorkflows
           }}
+          nodes={domainConfig?.FUNCTIONAL_NODES}
         />
       </div>
 

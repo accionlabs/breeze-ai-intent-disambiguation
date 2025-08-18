@@ -86,6 +86,13 @@ const IntentExamples: React.FC<IntentExamplesProps> = ({
         onIntentGenerated={handleIntentGenerated}
         onNewInput={handleNewIntentInput}
         showRationalized={showRationalized}
+        context={domainConfig ? {
+          nodes: domainConfig.FUNCTIONAL_NODES,
+          synonyms: domainConfig.DOMAIN_SYNONYMS,
+          wordForms: domainConfig.WORD_FORMS,
+          productCodes: domainConfig.PRODUCT_CODES
+        } : undefined}
+        placeholder={domainConfig?.INTENT_INPUT_PLACEHOLDER}
       />
       
       <div style={{ 

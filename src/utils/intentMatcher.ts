@@ -1,5 +1,13 @@
 import { FUNCTIONAL_NODES, FunctionalNode, PRODUCT_CODES, DOMAIN_SYNONYMS, WORD_FORMS } from '../config';
 
+// Context for domain-specific matching
+export interface MatchContext {
+  nodes?: Record<string, FunctionalNode>;
+  synonyms?: Record<string, string[]>;
+  wordForms?: Record<string, string>;
+  productCodes?: readonly string[];
+}
+
 // Use domain-specific synonyms from config
 
 // Calculate Levenshtein distance between two strings
@@ -38,12 +46,13 @@ function levenshteinDistance(str1: string, str2: string): number {
 }
 
 // Simple stemming function (removes common suffixes)
-function stem(word: string): string {
+function stem(word: string, wordForms?: Record<string, string>): string {
   const lower = word.toLowerCase();
   
-  // Use word forms from config
-  if (WORD_FORMS[lower]) {
-    return WORD_FORMS[lower];
+  // Use word forms from context or config
+  const forms = wordForms || WORD_FORMS;
+  if (forms[lower]) {
+    return forms[lower];
   }
   
   // Remove common suffixes
@@ -58,13 +67,16 @@ function stem(word: string): string {
 }
 
 // Check if two words are synonyms
-function areSynonyms(word1: string, word2: string): boolean {
+function areSynonyms(word1: string, word2: string, domainSynonyms?: Record<string, string[]>): boolean {
   const w1 = word1.toLowerCase();
   const w2 = word2.toLowerCase();
   
+  // Use synonyms from context or config
+  const synonyms = domainSynonyms || DOMAIN_SYNONYMS;
+  
   // Check direct synonym relationship
-  for (const [key, synonyms] of Object.entries(DOMAIN_SYNONYMS)) {
-    const allWords = [key, ...(synonyms as string[])];
+  for (const [key, syns] of Object.entries(synonyms)) {
+    const allWords = [key, ...(syns as string[])];
     if (allWords.includes(w1) && allWords.includes(w2)) {
       return true;
     }
@@ -74,7 +86,7 @@ function areSynonyms(word1: string, word2: string): boolean {
 }
 
 // Calculate word similarity score
-function wordSimilarity(word1: string, word2: string): number {
+function wordSimilarity(word1: string, word2: string, context?: MatchContext): number {
   const w1 = word1.toLowerCase();
   const w2 = word2.toLowerCase();
   
@@ -82,10 +94,10 @@ function wordSimilarity(word1: string, word2: string): number {
   if (w1 === w2) return 1.0;
   
   // Check stems
-  if (stem(w1) === stem(w2)) return 0.8;
+  if (stem(w1, context?.wordForms) === stem(w2, context?.wordForms)) return 0.8;
   
   // Check synonyms
-  if (areSynonyms(w1, w2)) return 0.7;
+  if (areSynonyms(w1, w2, context?.synonyms)) return 0.7;
   
   // Check Levenshtein distance for typos (threshold: 2 edits for words > 4 chars)
   const distance = levenshteinDistance(w1, w2);
@@ -117,7 +129,7 @@ export interface MatchResult {
 }
 
 // Main function to find best matching nodes
-export function findBestMatches(inputText: string, topN: number = 5): MatchResult[] {
+export function findBestMatches(inputText: string, topN: number = 5, context?: MatchContext): MatchResult[] {
   const inputTokens = tokenize(inputText);
   
   if (inputTokens.length === 0) {
@@ -126,8 +138,11 @@ export function findBestMatches(inputText: string, topN: number = 5): MatchResul
   
   const results: MatchResult[] = [];
   
+  // Use provided nodes or fall back to global FUNCTIONAL_NODES
+  const nodesToSearch = context?.nodes || FUNCTIONAL_NODES;
+  
   // Score each node
-  for (const [nodeId, node] of Object.entries(FUNCTIONAL_NODES) as [string, FunctionalNode][]) {
+  for (const [nodeId, node] of Object.entries(nodesToSearch) as [string, FunctionalNode][]) {
     if (!node) continue;
     
     const nodeTokens = tokenize(node.label);
@@ -151,7 +166,7 @@ export function findBestMatches(inputText: string, topN: number = 5): MatchResul
         // Skip if this node token was already matched
         if (usedNodeTokens.has(nodeToken)) continue;
         
-        const similarity = wordSimilarity(inputToken, nodeToken);
+        const similarity = wordSimilarity(inputToken, nodeToken, context);
         if (similarity > bestWordScore) {
           bestWordScore = similarity;
           bestMatch = nodeToken;
@@ -159,9 +174,9 @@ export function findBestMatches(inputText: string, topN: number = 5): MatchResul
           // Determine match type
           if (inputToken.toLowerCase() === nodeToken.toLowerCase()) {
             matchType = 'exact';
-          } else if (stem(inputToken) === stem(nodeToken)) {
+          } else if (stem(inputToken, context?.wordForms) === stem(nodeToken, context?.wordForms)) {
             matchType = 'stem';
-          } else if (areSynonyms(inputToken, nodeToken)) {
+          } else if (areSynonyms(inputToken, nodeToken, context?.synonyms)) {
             matchType = 'synonym';
           } else {
             matchType = 'fuzzy';
@@ -226,8 +241,8 @@ export function findBestMatches(inputText: string, topN: number = 5): MatchResul
 }
 
 // Function to get a single best match
-export function findBestMatch(inputText: string): MatchResult | null {
-  const matches = findBestMatches(inputText, 1);
+export function findBestMatch(inputText: string, context?: MatchContext): MatchResult | null {
+  const matches = findBestMatches(inputText, 1, context);
   return matches.length > 0 ? matches[0] : null;
 }
 
@@ -247,12 +262,12 @@ export interface GeneratedIntent {
 }
 
 // Export the match results for use in resolution
-export function getTopMatches(inputText: string, limit: number = 10): MatchResult[] {
-  return findBestMatches(inputText, limit);
+export function getTopMatches(inputText: string, limit: number = 10, context?: MatchContext): MatchResult[] {
+  return findBestMatches(inputText, limit, context);
 }
 
-export function generateIntentFromText(inputText: string, showRationalized: boolean = true): GeneratedIntent | null {
-  const matches = findBestMatches(inputText, 10);  // Get more matches to check for duplicates
+export function generateIntentFromText(inputText: string, showRationalized: boolean = true, context?: MatchContext): GeneratedIntent | null {
+  const matches = findBestMatches(inputText, 10, context);  // Get more matches to check for duplicates
   
   if (matches.length === 0) {
     return null;
@@ -284,7 +299,8 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
       const products = new Set<string>();
       sameLabelMatches.forEach((match: any) => {
         // Check if node has different product suffixes or is shared
-        PRODUCT_CODES.forEach((productCode: string) => {
+        const productCodes = context?.productCodes || PRODUCT_CODES;
+        productCodes.forEach((productCode: string) => {
           if (match.nodeId.includes(`-${productCode}`)) {
             products.add(productCode);
           }
@@ -328,7 +344,8 @@ export function generateIntentFromText(inputText: string, showRationalized: bool
       let baseFunction = nodeId;
       
       // Remove product suffixes
-      const productSuffixes = PRODUCT_CODES.map((code: string) => `-${code}`);
+      const productCodes = context?.productCodes || PRODUCT_CODES;
+      const productSuffixes = productCodes.map((code: string) => `-${code}`);
       productSuffixes.forEach((suffix: string) => {
         if (nodeId.endsWith(suffix)) {
           baseFunction = nodeId.slice(0, -suffix.length);

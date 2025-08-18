@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Resolution, FUNCTIONAL_NODES, UserContext, DISPLAY_LIMITS, getProductColor } from '../config';
+import { Resolution, FUNCTIONAL_NODES, UserContext, DISPLAY_LIMITS, getProductColor, FunctionalNode } from '../config';
 import { RecentAction } from '../sections/IntentDisambiguationSection';
 import { GeneratedIntent } from '../utils/intentMatcher';
 
@@ -18,6 +18,7 @@ interface ResolutionComparisonProps {
     showRationalized: boolean;
     showWorkflows: boolean;
   };
+  nodes?: Record<string, FunctionalNode>;
 }
 
 const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
@@ -31,7 +32,8 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
   onSelectedRecentIntentChange,
   onClearRecentIntents,
   graphStateVersion = 0,
-  currentToggles
+  currentToggles,
+  nodes
 }) => {
   const [selectedRecentIntent, setSelectedRecentIntent] = useState<string | null>(null);
   const [userDeselected, setUserDeselected] = useState(false);
@@ -101,7 +103,8 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
       );
     }
 
-    const entryNode = FUNCTIONAL_NODES[resolution.entryNode];
+    const functionalNodes = nodes || FUNCTIONAL_NODES;
+    const entryNode = functionalNodes[resolution.entryNode];
 
     return (
       <div style={{
@@ -155,7 +158,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
             let outcomeName = 'N/A';
             const outcomeNode = resolution.traversalPath.upward
               .concat(resolution.traversalPath.downward)
-              .map(nodeId => FUNCTIONAL_NODES[nodeId])
+              .map(nodeId => functionalNodes[nodeId])
               .find(node => node && node.level === 'outcome');
             if (outcomeNode) {
               outcomeName = outcomeNode.label;
@@ -249,7 +252,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
               {resolution.traversalPath.upward
                 .slice()
                 .reverse()
-                .map(nodeId => FUNCTIONAL_NODES[nodeId]?.label)
+                .map(nodeId => functionalNodes[nodeId]?.label)
                 .filter(Boolean)
                 .join(' → ')}
             </div>
@@ -261,7 +264,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
           <div style={{ fontSize: 10, color: '#999', marginBottom: 4 }}>ACTIONS TO EXECUTE:</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {resolution.selectedActions.map(actionId => {
-              const action = FUNCTIONAL_NODES[actionId];
+              const action = functionalNodes[actionId];
               if (!action) return null;
               return (
                 <div key={actionId} style={{

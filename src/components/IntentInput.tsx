@@ -1,14 +1,16 @@
 import React, { useState, useRef } from 'react';
-import { generateIntentFromText, GeneratedIntent } from '../utils/intentMatcher';
+import { generateIntentFromText, GeneratedIntent, MatchContext } from '../utils/intentMatcher';
 import { INTENT_INPUT_PLACEHOLDER } from '../config';
 
 interface IntentInputProps {
   onIntentGenerated: (intent: GeneratedIntent) => void;
   onNewInput?: () => void;
   showRationalized?: boolean;
+  context?: MatchContext;
+  placeholder?: string;
 }
 
-const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput, showRationalized = true }) => {
+const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput, showRationalized = true, context, placeholder }) => {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,7 @@ const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput
     
     // Simulate processing delay (like API call)
     setTimeout(() => {
-      const generatedIntent = generateIntentFromText(inputText, showRationalized);
+      const generatedIntent = generateIntentFromText(inputText, showRationalized, context);
       
       if (generatedIntent) {
         onIntentGenerated(generatedIntent);
@@ -80,7 +82,7 @@ const IntentInput: React.FC<IntentInputProps> = ({ onIntentGenerated, onNewInput
                 setInputText(e.target.value);
                 setError(null);
               }}
-              placeholder={INTENT_INPUT_PLACEHOLDER}
+              placeholder={placeholder || INTENT_INPUT_PLACEHOLDER}
               style={{
                 flex: 1,
                 padding: '8px 10px',
