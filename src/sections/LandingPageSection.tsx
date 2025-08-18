@@ -195,6 +195,9 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
         </div>
       </div>
 
+      {/* Domain Selection - Call to Action */}
+      <DomainCards onDomainSelect={onDomainSelect} />
+
       {/* How to Use Section */}
       <div style={{
         background: 'white',
@@ -503,9 +506,6 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
           <li>Enable workflows to see cross-product orchestration capabilities</li>
         </ul>
       </div>
-
-      {/* Domain Selection - Call to Action */}
-      <DomainCards onDomainSelect={onDomainSelect} />
     </div>
   );
 };
