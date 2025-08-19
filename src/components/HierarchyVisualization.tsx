@@ -1,4 +1,7 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
+import { select } from 'd3-selection';
+import 'd3-transition'; // This extends the selection prototype with transition()
+import { zoom as d3Zoom, zoomIdentity, ZoomBehavior, D3ZoomEvent, ZoomTransform } from 'd3-zoom';
 import { 
   FunctionalNode, 
   UserContext,
@@ -65,16 +68,18 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [lastExpandedNode, setLastExpandedNode] = useState<string | null>(null); // Track last expanded node
   
-  // Zoom and pan state
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  // d3-zoom state and refs
+  const svgRef = useRef<SVGSVGElement>(null);
+  const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
   
   // Focus mode state
   const [focusMode, setFocusMode] = useState(false);
   const [pendingFocusNode, setPendingFocusNode] = useState<string | null>(null);
   const [focusBounds, setFocusBounds] = useState<{minX: number, maxX: number, minY: number, maxY: number} | null>(null);
+  
+  // Track node position for maintaining view stability (currently disabled)
+  const [nodeToMaintain, setNodeToMaintain] = useState<string | null>(null);
   
   // Effect to handle expansion mode changes
   useEffect(() => {
@@ -318,12 +323,14 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     // Start DFS from root nodes (products)
     const roots = Array.from(FUNCTIONAL_GRAPH.graph.roots);
     
-    // When showing overlaps and no intent is selected, only process roots that are expanded
+    // When showing overlaps and no intent is selected, show all roots but only traverse if expanded
     if (showOverlaps && !selectedIntent) {
       (roots as string[]).forEach((rootId: string) => {
-        // Only make root visible if it's in the expanded set
-        if (expandedNodes.has(rootId)) {
-          visible.add(rootId);
+        // Always make root visible when showing overlaps
+        visible.add(rootId);
+        // Only traverse children if this root is expanded
+        const isRootExpanded = expandedNodes.has(rootId);
+        if (isRootExpanded) {
           const children = graphOps.getChildren(rootId);
           children.forEach((childId: string) => {
             dfsCollectVisible(childId, true, true);
@@ -554,152 +561,6 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     return { nodePositions: positions, graphBounds: layoutResult.graphBounds };
   }, [visibleNodes, showWorkflows, FUNCTIONAL_NODES, FUNCTIONAL_GRAPH.nodes, graphOps]);
 
-  // Handle focus bounds calculation after diagram updates
-  useEffect(() => {
-    if (pendingFocusNode && nodePositions[pendingFocusNode]) {
-      // Calculate bounds for the branch starting from pendingFocusNode
-      const branchNodes = new Set<string>([pendingFocusNode]);
-      
-      // Collect all visible descendants
-      const addDescendants = (id: string) => {
-        const children = graphOps.getChildren(id);
-        children.forEach((childId: string) => {
-          if (visibleNodes.has(childId) && !branchNodes.has(childId)) {
-            branchNodes.add(childId);
-            if (expandedNodes.has(childId)) {
-              addDescendants(childId);
-            }
-          }
-        });
-      };
-      
-      if (expandedNodes.has(pendingFocusNode)) {
-        addDescendants(pendingFocusNode);
-      }
-      
-      // Calculate bounding box
-      let minX = Infinity, maxX = -Infinity;
-      let minY = Infinity, maxY = -Infinity;
-      
-      branchNodes.forEach(id => {
-        const pos = nodePositions[id];
-        if (pos) {
-          const nodeHalfWidth = 70;
-          const nodeHalfHeight = 25;
-          minX = Math.min(minX, pos.x - nodeHalfWidth);
-          maxX = Math.max(maxX, pos.x + nodeHalfWidth);
-          minY = Math.min(minY, pos.y - nodeHalfHeight);
-          maxY = Math.max(maxY, pos.y + nodeHalfHeight);
-        }
-      });
-      
-      // Add some padding
-      const padding = 20;
-      minX -= padding;
-      maxX += padding;
-      minY -= padding;
-      maxY += padding;
-      
-      // Set the focus bounds for rendering
-      if (isFinite(minX) && isFinite(maxX) && isFinite(minY) && isFinite(maxY)) {
-        setFocusBounds({ minX, maxX, minY, maxY });
-        
-        // After setting bounds, calculate pan to center the rectangle
-        if (focusMode) {
-          // Calculate rectangle dimensions and center in SVG coordinates
-          const rectWidth = maxX - minX;
-          const rectHeight = maxY - minY;
-          const rectCenterX = (minX + maxX) / 2;
-          const rectCenterY = (minY + maxY) / 2;
-          
-          // Get viewport dimensions
-          const svgElement = document.querySelector('svg');
-          const viewportWidth = svgElement?.clientWidth || 800;
-          const viewportHeight = svgElement?.clientHeight || 600;
-          
-          // Get viewBox dimensions
-          const viewBoxAttr = svgElement?.getAttribute('viewBox') || '0 0 1600 700';
-          const [, , vbWidth, vbHeight] = viewBoxAttr.split(' ').map(Number);
-          
-          // STEP 1: Calculate pan needed to center the rectangle (at current zoom level)
-          // With transform="translate(pan.x, pan.y) scale(zoom)"
-          // The pan is in SVG coordinates, applied before scale
-          // After transform, an SVG point (x,y) appears at screen position: ((x + pan) * zoom)
-          // To center rectCenter at viewport center: (rectCenter + pan) * zoom = viewportCenter
-          // Therefore: pan = (viewportCenter / zoom) - rectCenter
-          
-          // But viewport dimensions are in screen pixels, need to map to SVG coords
-          const viewportCenterX = viewportWidth / 2;
-          const viewportCenterY = viewportHeight / 2;
-          
-          // Map viewport center to SVG coordinates considering viewBox
-          const svgScale = vbWidth / viewportWidth;
-          const svgViewportCenterX = viewportCenterX * svgScale;
-          const svgViewportCenterY = viewportCenterY * svgScale * (vbHeight / vbWidth);
-          
-          // Calculate pan in SVG coordinates
-          const targetPanX = (svgViewportCenterX / zoom) - rectCenterX;
-          const targetPanY = (svgViewportCenterY / zoom) - rectCenterY;
-          
-          
-          // Apply the pan first
-          setPan({ x: targetPanX, y: targetPanY });
-          
-          // STEP 2: After pan is applied, calculate zoom (but don't apply it yet)
-          setTimeout(() => {
-            // Get current pan values after step 1
-            const currentPanX = targetPanX;
-            const currentPanY = targetPanY;
-            const currentZoom = zoom;
-            
-            // Define margin percentage (e.g., 0.85 means the rectangle should fit in 85% of viewport)
-            const marginFactor = 0.85;
-            
-            // Calculate the scale factor from SVG coordinates to viewport pixels
-            const svgToViewportScaleX = viewportWidth / vbWidth;
-            const svgToViewportScaleY = viewportHeight / vbHeight;
-            
-            // Calculate zoom needed to fit the rectangle within the viewport with margin
-            const zoomToFitWidth = (viewportWidth * marginFactor) / (rectWidth * svgToViewportScaleX);
-            const zoomToFitHeight = (viewportHeight * marginFactor) / (rectHeight * svgToViewportScaleY);
-            
-            // Take the smaller zoom to ensure both dimensions fit
-            let targetZoom = Math.min(zoomToFitWidth, zoomToFitHeight);
-            
-            // Clamp zoom to reasonable bounds
-            targetZoom = Math.max(0.3, Math.min(targetZoom, 10));
-            
-            // Calculate zoom ratio
-            const zoomRatio = targetZoom / currentZoom;
-            
-            // When zooming from center, we need to adjust pan
-            // The viewport center in screen coordinates
-            const viewportCenterScreenX = viewportWidth / 2;
-            const viewportCenterScreenY = viewportHeight / 2;
-            
-            // What point in SVG space is at the viewport center before zoom?
-            const svgPointAtCenterX = (viewportCenterScreenX - currentPanX) / currentZoom;
-            const svgPointAtCenterY = (viewportCenterScreenY - currentPanY) / currentZoom;
-            
-            // After zoom, where would this SVG point be in screen space?
-            const newScreenX = svgPointAtCenterX * targetZoom;
-            const newScreenY = svgPointAtCenterY * targetZoom;
-            
-            // Calculate new pan to keep that point at viewport center
-            const adjustedPanX = viewportCenterScreenX - newScreenX;
-            const adjustedPanY = viewportCenterScreenY - newScreenY;
-            
-            
-            // DON'T APPLY ZOOM - calculations only for future use
-          }, 100); // Small delay to let the pan complete
-        }
-      }
-      
-      // Clear the pending focus node
-      setPendingFocusNode(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingFocusNode, nodePositions, expandedNodes, visibleNodes, focusMode, zoom]); // Added focusMode and zoom as dependencies
 
   // Calculate confidence based on user context
   const getNodeConfidence = (nodeId: string): number => {
@@ -755,6 +616,26 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     return LEVEL_COLORS.product; // Default fallback
   };
 
+  // Initialize d3-zoom
+  useEffect(() => {
+    if (!svgRef.current) return;
+
+    const svg = select(svgRef.current);
+    const zoom = d3Zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.3, 10]) // Min zoom 0.3x, max zoom 10x
+      .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
+        setTransform(event.transform);
+      });
+
+    svg.call(zoom);
+    zoomBehaviorRef.current = zoom;
+
+    // Cleanup
+    return () => {
+      svg.on('.zoom', null);
+    };
+  }, []);
+
   // Animation control
   useEffect(() => {
     if (!selectedIntent) {
@@ -777,166 +658,158 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     return () => clearInterval(interval);
   }, [selectedIntent]);
 
-  // Zoom handlers - zoom from center of viewport
-  const handleZoomIn = () => {
-    const scale = 1.2;
-    const newZoom = Math.min(zoom * scale, 10); // Max zoom 10x
+  // Zoom control handlers using d3-zoom API
+  const handleZoomIn = useCallback(() => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
     
-    // Get actual viewport dimensions from SVG element
-    const svgElement = document.querySelector('svg');
-    const viewportWidth = svgElement?.clientWidth || 800;
-    const viewportHeight = svgElement?.clientHeight || 600;
-    
-    // Get viewBox to understand SVG coordinate system
-    const viewBoxAttr = svgElement?.getAttribute('viewBox') || '0 0 1600 700';
-    const [, , vbWidth, vbHeight] = viewBoxAttr.split(' ').map(Number);
-    
-    // Calculate viewport center in screen pixels
-    const centerX = viewportWidth / 2;
-    const centerY = viewportHeight / 2;
-    
-    // Convert viewport center to SVG coordinates (considering viewBox)
-    const svgCenterX = (centerX / viewportWidth) * vbWidth;
-    const svgCenterY = (centerY / viewportHeight) * vbHeight;
-    
-    // With transform="translate(pan.x, pan.y) scale(zoom)", 
-    // the formula to keep a point fixed during zoom is:
-    // newPan = svgCenter - (svgCenter - oldPan) * (newZoom / oldZoom)
-    const zoomRatio = newZoom / zoom;
-    const newPanX = svgCenterX - (svgCenterX - pan.x) * zoomRatio;
-    const newPanY = svgCenterY - (svgCenterY - pan.y) * zoomRatio;
-    
-    
-    // Apply zoom and adjusted pan
-    setZoom(newZoom);
-    setPan({ x: newPanX, y: newPanY });
-  };
+    const svg = select(svgRef.current) as any;
+    svg.transition()
+      .duration(250)
+      .call(zoomBehaviorRef.current.scaleBy, 1.2);
+  }, []);
 
-  const handleZoomOut = () => {
-    const scale = 1 / 1.2;
-    const newZoom = Math.max(zoom * scale, 0.3); // Min zoom 0.3x
+  const handleZoomOut = useCallback(() => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
     
-    // Get actual viewport dimensions from SVG element
-    const svgElement = document.querySelector('svg');
-    const viewportWidth = svgElement?.clientWidth || 800;
-    const viewportHeight = svgElement?.clientHeight || 600;
-    
-    // Get viewBox to understand SVG coordinate system
-    const viewBoxAttr = svgElement?.getAttribute('viewBox') || '0 0 1600 700';
-    const [, , vbWidth, vbHeight] = viewBoxAttr.split(' ').map(Number);
-    
-    // Calculate viewport center in screen pixels
-    const centerX = viewportWidth / 2;
-    const centerY = viewportHeight / 2;
-    
-    // Convert viewport center to SVG coordinates (considering viewBox)
-    const svgCenterX = (centerX / viewportWidth) * vbWidth;
-    const svgCenterY = (centerY / viewportHeight) * vbHeight;
-    
-    // With transform="translate(pan.x, pan.y) scale(zoom)", 
-    // the formula to keep a point fixed during zoom is:
-    // newPan = svgCenter - (svgCenter - oldPan) * (newZoom / oldZoom)
-    const zoomRatio = newZoom / zoom;
-    const newPanX = svgCenterX - (svgCenterX - pan.x) * zoomRatio;
-    const newPanY = svgCenterY - (svgCenterY - pan.y) * zoomRatio;
-    
-    
-    // Apply zoom and adjusted pan
-    setZoom(newZoom);
-    setPan({ x: newPanX, y: newPanY });
-  };
+    const svg = select(svgRef.current) as any;
+    svg.transition()
+      .duration(250)
+      .call(zoomBehaviorRef.current.scaleBy, 1 / 1.2);
+  }, []);
 
-  const handleZoomReset = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
-
-  // Pan handlers
-  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (e.button === 0) { // Left click only
-      setIsDragging(true);
-      // Store just the mouse position when starting drag
-      setDragStart({ 
-        x: e.clientX, 
-        y: e.clientY 
-      });
-      e.preventDefault();
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (isDragging) {
-      // Calculate the mouse movement delta
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-      
-      // Scale the pan movement based on zoom level
-      // When zoomed in, the graph is larger, so we need to pan more to keep up with the mouse
-      // When zoomed out, the graph is smaller, so we pan less
-      const scaledDeltaX = deltaX * Math.max(1, zoom * 0.8); // Scale up when zoomed in
-      const scaledDeltaY = deltaY * Math.max(1, zoom * 0.8);
-      
-      setPan(prevPan => ({
-        x: prevPan.x + scaledDeltaX,
-        y: prevPan.y + scaledDeltaY
-      }));
-      
-      // Update dragStart for next move event
-      setDragStart({ x: e.clientX, y: e.clientY });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
+  const handleZoomReset = useCallback(() => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
     
-    // Get the mouse position relative to the SVG viewport
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const svg = select(svgRef.current) as any;
+    svg.transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current.transform, zoomIdentity);
+  }, []);
+
+  // Auto-focus function using d3-zoom
+  const autoFocus = useCallback((nodeIds: string[], options?: {
+    padding?: number;
+    duration?: number;
+    minScale?: number;
+    maxScale?: number;
+  }) => {
+    if (!svgRef.current || !zoomBehaviorRef.current || nodeIds.length === 0) return;
     
-    // Calculate zoom factor
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.3, Math.min(10, zoom * delta));
-    const scale = newZoom / zoom;
+    const {
+      padding = 100,
+      duration = 750,
+      minScale = 0.5,
+      maxScale = 4
+    } = options || {};
     
-    // Adjust pan to keep the point under the mouse cursor fixed
-    setPan(prevPan => ({
-      x: x - (x - prevPan.x) * scale,
-      y: y - (y - prevPan.y) * scale
-    }));
+    // Calculate bounding box for the nodes
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
     
-    setZoom(newZoom);
-  };
+    nodeIds.forEach(nodeId => {
+      const pos = nodePositions[nodeId];
+      if (pos) {
+        const nodeHalfWidth = 70;
+        const nodeHalfHeight = 25;
+        minX = Math.min(minX, pos.x - nodeHalfWidth);
+        maxX = Math.max(maxX, pos.x + nodeHalfWidth);
+        minY = Math.min(minY, pos.y - nodeHalfHeight);
+        maxY = Math.max(maxY, pos.y + nodeHalfHeight);
+      }
+    });
+    
+    if (!isFinite(minX) || !isFinite(maxX)) return;
+    
+    // Add padding
+    minX -= padding;
+    maxX += padding;
+    minY -= padding;
+    maxY += padding;
+    
+    // Calculate dimensions
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    
+    // Get viewport dimensions
+    const viewportWidth = svgRef.current.clientWidth;
+    const viewportHeight = svgRef.current.clientHeight;
+    
+    // Calculate optimal scale
+    const scale = Math.min(
+      maxScale,
+      Math.max(
+        minScale,
+        Math.min(
+          viewportWidth / width,
+          viewportHeight / height
+        ) * 0.9 // 90% to leave margin
+      )
+    );
+    
+    // Apply transform with animation
+    const svg = select(svgRef.current) as any;
+    svg.transition()
+      .duration(duration)
+      .call(
+        zoomBehaviorRef.current.transform,
+        zoomIdentity
+          .translate(viewportWidth / 2, viewportHeight / 2)
+          .scale(scale)
+          .translate(-centerX, -centerY)
+      );
+  }, [nodePositions]);
 
   // Toggle node expansion with configurable peer collapse behavior using graph model
-  // Focus on a branch starting from a specific node
-  const focusOnBranch = (nodeId: string) => {
-    // Get fresh node positions from the current render
-    const currentPositions = nodePositions;
+  const focusOnBranch = useCallback((nodeId: string) => {
+    if (!nodePositions[nodeId]) return;
     
-    if (!currentPositions[nodeId]) {
-      return;
+    // Collect all visible nodes in the branch
+    const branchNodes: string[] = [nodeId];
+    
+    const addDescendants = (id: string) => {
+      const children = graphOps.getChildren(id);
+      children.forEach((childId: string) => {
+        if (visibleNodes.has(childId) && !branchNodes.includes(childId)) {
+          branchNodes.push(childId);
+          if (expandedNodes.has(childId)) {
+            addDescendants(childId);
+          }
+        }
+      });
+    };
+    
+    if (expandedNodes.has(nodeId)) {
+      addDescendants(nodeId);
     }
     
-    // ALWAYS start from base state (zoom=1, pan=0,0)
-    // This ensures consistent calculations every time
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-    
-    // Small delay to let the reset apply
-    setTimeout(() => {
+    // Use auto-focus to zoom into the branch
+    autoFocus(branchNodes, {
+      padding: 50,
+      duration: 500,
+      maxScale: 2
+    });
+  }, [nodePositions, expandedNodes, visibleNodes, graphOps, autoFocus]);
+
+  // Clear nodeToMaintain when positions update (compensation disabled)
+  useEffect(() => {
+    if (nodeToMaintain) {
+      setNodeToMaintain(null);
+    }
+  }, [nodeToMaintain, nodePositions]);
+
+  // Handle focus on pending node using d3-zoom
+  useEffect(() => {
+    if (pendingFocusNode && nodePositions[pendingFocusNode] && focusMode) {
       // Collect all visible nodes in the branch
-      const branchNodes = new Set<string>([nodeId]);
+      const branchNodes: string[] = [pendingFocusNode];
       
       const addDescendants = (id: string) => {
         const children = graphOps.getChildren(id);
         children.forEach((childId: string) => {
-          if (visibleNodes.has(childId) && !branchNodes.has(childId)) {
-            branchNodes.add(childId);
+          if (visibleNodes.has(childId) && !branchNodes.includes(childId)) {
+            branchNodes.push(childId);
             if (expandedNodes.has(childId)) {
               addDescendants(childId);
             }
@@ -944,79 +817,21 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         });
       };
       
-      if (expandedNodes.has(nodeId)) {
-        addDescendants(nodeId);
+      if (expandedNodes.has(pendingFocusNode)) {
+        addDescendants(pendingFocusNode);
       }
       
-      // Calculate bounding box in SVG coordinates
-      let minX = Infinity, maxX = -Infinity;
-      let minY = Infinity, maxY = -Infinity;
-      
-      branchNodes.forEach(id => {
-        const pos = currentPositions[id];
-        if (pos) {
-          const nodeHalfWidth = 70;
-          const nodeHalfHeight = 25;
-          minX = Math.min(minX, pos.x - nodeHalfWidth);
-          maxX = Math.max(maxX, pos.x + nodeHalfWidth);
-          minY = Math.min(minY, pos.y - nodeHalfHeight);
-          maxY = Math.max(maxY, pos.y + nodeHalfHeight);
-        }
+      // Use auto-focus to center on the branch
+      autoFocus(branchNodes, {
+        padding: 80,
+        duration: 750,
+        maxScale: 2.5
       });
       
-      if (!isFinite(minX) || !isFinite(maxX)) return;
-      
-      // Add padding around the branch
-      const padding = 30;
-      minX -= padding;
-      maxX += padding;
-      minY -= padding;
-      maxY += padding;
-      
-      const branchWidth = maxX - minX;
-      const branchHeight = maxY - minY;
-      const branchCenterX = (minX + maxX) / 2;
-      const branchCenterY = (minY + maxY) / 2;
-      
-      // Get viewport dimensions
-      const svgElement = document.querySelector('svg');
-      const viewportWidth = svgElement?.clientWidth || 800;
-      const viewportHeight = svgElement?.clientHeight || 600;
-      
-      // Get viewBox dimensions
-      const viewBoxAttr = svgElement?.getAttribute('viewBox') || '0 0 1600 700';
-      const [, , vbWidth, vbHeight] = viewBoxAttr.split(' ').map(Number);
-      
-      // How SVG units map to screen pixels at zoom=1
-      const svgToScreenScale = Math.min(viewportWidth / vbWidth, viewportHeight / vbHeight);
-      
-      // Calculate zoom to fit branch in 85% of viewport (leaving margins)
-      const targetWidth = viewportWidth * 0.85;
-      const targetHeight = viewportHeight * 0.85;
-      
-      const zoomToFitWidth = targetWidth / (branchWidth * svgToScreenScale);
-      const zoomToFitHeight = targetHeight / (branchHeight * svgToScreenScale);
-      
-      // Use the smaller zoom to ensure both dimensions fit
-      // Cap at 1.8 to avoid too much zoom
-      const targetZoom = Math.min(zoomToFitWidth, zoomToFitHeight, 1.8);
-      
-      // Don't zoom out too much
-      const finalZoom = Math.max(targetZoom, 0.5);
-      
-      // Calculate pan to center the branch
-      const screenCenterX = branchCenterX * svgToScreenScale * finalZoom;
-      const screenCenterY = branchCenterY * svgToScreenScale * finalZoom;
-      
-      const targetPanX = (viewportWidth / 2) - screenCenterX;
-      const targetPanY = (viewportHeight / 2) - screenCenterY;
-      
-      
-      // Apply the transform
-      setZoom(finalZoom);
-      setPan({ x: targetPanX, y: targetPanY });
-    }, 50);
-  };
+      // Clear the pending focus node
+      setPendingFocusNode(null);
+    }
+  }, [pendingFocusNode, nodePositions, expandedNodes, visibleNodes, focusMode, graphOps, autoFocus]);
 
   const toggleNodeExpansion = (nodeId: string) => {
     const children = graphOps.getChildren(nodeId);
@@ -1033,6 +848,9 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     if (!hasMatchedChildren) return;
     
     const isExpanding = !expandedNodes.has(nodeId);
+    
+    // Store node id for reference (compensation disabled)
+    setNodeToMaintain(nodeId);
     
     setExpandedNodes(prev => {
       const newSet = new Set(prev);
@@ -1112,18 +930,6 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       return newSet;
     });
     
-    // Set pending focus node to calculate bounds after re-render
-    if (isExpanding) {
-      setPendingFocusNode(nodeId);
-    } else {
-      // When collapsing, clear the focus bounds
-      setFocusBounds(null);
-      // Optionally focus on parent
-      const parents = graphOps.getParents(nodeId);
-      if (parents.length > 0) {
-        setPendingFocusNode(parents[0]);
-      }
-    }
   };
 
   // Render connections between nodes using the graph model
@@ -1310,6 +1116,34 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     );
   };
 
+  // Auto-focus disabled to prevent unwanted zoom changes
+  // Uncomment this effect to enable auto-focus on intent selection
+  // useEffect(() => {
+  //   if (selectedIntent && matchedNodes.size > 0 && nodePositions) {
+  //     // Small delay to let the graph render first
+  //     setTimeout(() => {
+  //       const matchedNodeIds = Array.from(matchedNodes);
+  //       autoFocus(matchedNodeIds, {
+  //         padding: 100,
+  //         duration: 1000,
+  //         maxScale: 1.5
+  //       });
+  //     }, 300);
+  //   } else if (showOverlaps && !selectedIntent && nodePositions) {
+  //     // Auto-focus on overlapping nodes
+  //     setTimeout(() => {
+  //       const overlappingNodes = showRationalized ? SHARED_NODES : DUPLICATE_NODES;
+  //       if (overlappingNodes.length > 0) {
+  //         autoFocus(overlappingNodes, {
+  //           padding: 120,
+  //           duration: 800,
+  //           maxScale: 1.2
+  //         });
+  //       }
+  //     }, 300);
+  //   }
+  // }, [selectedIntent, matchedNodes, showOverlaps, showRationalized, nodePositions, autoFocus, SHARED_NODES, DUPLICATE_NODES]);
+
   return (
     <div style={{
       flex: 1,
@@ -1337,8 +1171,8 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         {focusMode ? 
           `🎯 Auto-Focus Mode: View automatically adjusts when you expand/collapse nodes` :
           selectedIntent ? 
-            `Showing matched path • ${expandedNodes.size} nodes expanded • Zoom: ${Math.round(zoom * 100)}%` :
-            `Click nodes to expand/collapse • ${expandedNodes.size} nodes expanded • ${expansionMode === 'single' ? 'Single' : 'Multiple'} mode • Zoom: ${Math.round(zoom * 100)}%`
+            `Showing matched path • ${expandedNodes.size} nodes expanded • Zoom: ${Math.round(transform.k * 100)}%` :
+            `Click nodes to expand/collapse • ${expandedNodes.size} nodes expanded • ${expansionMode === 'single' ? 'Single' : 'Multiple'} mode • Zoom: ${Math.round(transform.k * 100)}%`
         }
       </div>
 
@@ -1441,22 +1275,18 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
 
       {/* Main visualization */}
       <svg
+        ref={svgRef}
         width="100%"
         height="600"
         viewBox={`0 0 ${graphBounds.width} ${graphBounds.height}`}
         style={{ 
           width: '100%', 
           height: '100%',
-          cursor: isDragging ? 'grabbing' : 'grab'
+          cursor: 'grab'
         }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
       >
         {/* Transform group for zoom and pan */}
-        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+        <g transform={transform.toString()}>
           {/* Level labels inside SVG - positioned between node rows */}
           <g>
             {/* Product label - above product nodes */}
