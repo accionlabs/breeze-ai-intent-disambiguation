@@ -205,6 +205,44 @@ export function isNodeOrAncestorDuplicate(
 }
 
 /**
+ * Check if a node or its ancestors are duplicates and return detailed information
+ * This is used by the resolution engine for better duplicate detection
+ */
+export function checkNodeDuplicateStatus(
+  nodeId: string,
+  nodes: Record<string, FunctionalNode>,
+  RATIONALIZED_NODE_ALTERNATIVES?: Record<string, Record<string, string>>
+): { isDuplicate: boolean; duplicateAncestor?: string } {
+  if (!RATIONALIZED_NODE_ALTERNATIVES) return { isDuplicate: false };
+  
+  // Get all duplicate nodes from alternatives
+  const duplicateNodes = getDuplicateNodesFromAlternatives(RATIONALIZED_NODE_ALTERNATIVES);
+  
+  // Check if current node is a duplicate
+  if (duplicateNodes.includes(nodeId)) {
+    return { isDuplicate: true, duplicateAncestor: nodeId };
+  }
+  
+  // Check ancestors
+  let currentNode = nodes[nodeId];
+  while (currentNode && currentNode.parents && currentNode.parents.length > 0) {
+    // Check each parent
+    for (const parentId of currentNode.parents) {
+      if (duplicateNodes.includes(parentId)) {
+        return { isDuplicate: true, duplicateAncestor: parentId };
+      }
+    }
+    
+    // Move up to the next level (use first parent for traversal)
+    const nextParentId = currentNode.parents[0];
+    currentNode = nodes[nextParentId];
+    if (!currentNode) break;
+  }
+  
+  return { isDuplicate: false };
+}
+
+/**
  * Get all nodes that should be marked as duplicates
  * This includes top-level duplicates and any duplicate children
  */

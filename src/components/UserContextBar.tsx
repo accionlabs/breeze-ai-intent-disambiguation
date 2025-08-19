@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserContext, getProductColor } from '../config';
-import { RecentAction } from '../sections/IntentDisambiguationSection';
+import { RecentAction } from '../utils/resolutionEngine';
 
 interface UserContextBarProps {
   context: UserContext;

@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import './App.css';
 import IntentDisambiguationSection from './sections/IntentDisambiguationSection';
 import LandingPageSection from './sections/LandingPageSection';
+import TestRunnerFull from './components/TestRunnerFull';
+import DomainValidation from './components/DomainValidation';
 import { DOMAIN_METADATA } from './config/domainMetadata';
 
 function AppContent() {
@@ -204,6 +206,18 @@ function AppContent() {
             path="/intent-disambiguation/:domainId" 
             element={
               <IntentDisambiguationSection />
+            } 
+          />
+          <Route 
+            path="/test-runner" 
+            element={
+              <TestRunnerFull />
+            } 
+          />
+          <Route 
+            path="/validate" 
+            element={
+              <DomainValidation />
             } 
           />
           <Route path="*" element={<Navigate to="/" replace />} />

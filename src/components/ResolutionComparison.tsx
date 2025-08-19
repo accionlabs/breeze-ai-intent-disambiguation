@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Resolution, FUNCTIONAL_NODES, UserContext, DISPLAY_LIMITS, getProductColor, FunctionalNode } from '../config';
-import { RecentAction } from '../sections/IntentDisambiguationSection';
+import { RecentAction } from '../utils/resolutionEngine';
 import { GeneratedIntent } from '../utils/intentMatcher';
 
 interface ResolutionComparisonProps {

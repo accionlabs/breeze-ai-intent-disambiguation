@@ -5,7 +5,8 @@ import HierarchyVisualization, { ExpansionMode } from '../components/HierarchyVi
 import ResolutionComparison from '../components/ResolutionComparison';
 import { GeneratedIntent, getTopMatches } from '../utils/intentMatcher';
 import { useDomainConfig } from '../hooks/useDomainConfig';
-import { processRationalization, isNodeOrAncestorDuplicate, getDuplicateNodesFromAlternatives } from '../utils/rationalizationProcessor';
+import { calculateResolution, RecentAction } from '../utils/resolutionEngine';
+import { processRationalization } from '../utils/rationalizationProcessor';
 import {
   Resolution,
   UserContext,
@@ -14,21 +15,7 @@ import {
   BUTTON_COLORS
 } from '../config';
 
-export interface RecentAction {
-  id: string;
-  persona: string;
-  intent: string;
-  product: string;
-  outcome: string;
-  matchedNode: string;
-  timestamp: Date;
-  success: boolean;
-  resolution: Resolution; // Store the full resolution for later display
-  toggleStates: {
-    showRationalized: boolean;
-    showWorkflows: boolean;
-  }; // Store the toggle states at time of resolution
-}
+// RecentAction interface is now imported from resolutionEngine
 
 const IntentDisambiguationSection: React.FC = () => {
   const domainConfig = useDomainConfig();
@@ -106,7 +93,7 @@ const IntentDisambiguationSection: React.FC = () => {
     
     console.log('Entry node found:', entryNode);
     
-    if (!entryNode) return { baseResolution: undefined, contextualResolution: undefined };
+    if (!entryNode || !graphOps) return { baseResolution: undefined, contextualResolution: undefined };
 
     // Get recent actions for current persona - filter for successful ones only for context
     const currentPersonaRecentActions = currentContextId ? (recentActionsByPersona[currentContextId] || []) : [];
@@ -568,8 +555,11 @@ const IntentDisambiguationSection: React.FC = () => {
   );
 };
 
-// Helper function to calculate resolution
-function calculateResolution(
+// calculateResolution function has been moved to resolutionEngine utility
+
+/*
+// REMOVED: This function is now in src/utils/resolutionEngine.ts
+export function calculateResolution(
   entryNodeId: string, 
   context: UserContext | null,
   showRationalized: boolean,
@@ -1181,5 +1171,6 @@ function calculateResolution(
   
   return finalResolution;
 }
+*/
 
 export default IntentDisambiguationSection;

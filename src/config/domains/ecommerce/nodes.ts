@@ -7,7 +7,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'product-storefront',
     label: 'Online Store',
     level: 'product',
-    products: ['storefront'],
     parents: [],
     children: ['outcome-customer-experience-storefront', 'outcome-sales-growth-storefront']
   },
@@ -15,7 +14,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'product-inventory',
     label: 'Inventory System',
     level: 'product',
-    products: ['inventory'],
     parents: [],
     children: ['outcome-stock-management-inventory', 'outcome-fulfillment-inventory']
   },
@@ -23,7 +21,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'product-crm',
     label: 'Customer CRM',
     level: 'product',
-    products: ['crm'],
     parents: [],
     children: ['outcome-customer-relationships-crm', 'outcome-customer-service-crm']
   },
@@ -224,7 +221,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'scenario',
     products: ['storefront', 'inventory'],
     parents: ['outcome-customer-experience-storefront', 'outcome-stock-management-inventory'],
-    children: ['step-product-search-unified']
+    children: ['step-product-search-unified', 'step-search-products-shared']
   },
   'scenario-order-processing-shared': {
     id: 'scenario-order-processing-shared',
@@ -232,7 +229,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'scenario',
     products: ['storefront', 'inventory'],
     parents: ['outcome-sales-growth-storefront', 'outcome-fulfillment-inventory'],
-    children: ['step-order-processing-unified']
+    children: ['step-order-processing-unified', 'step-receive-order-shared']
   },
   'scenario-customer-profiles-shared': {
     id: 'scenario-customer-profiles-shared',
@@ -240,7 +237,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'scenario',
     products: ['storefront', 'crm'],
     parents: ['outcome-customer-experience-storefront', 'outcome-customer-relationships-crm'],
-    children: ['step-customer-profile-unified']
+    children: ['step-customer-profile-unified', 'step-collect-data-shared']
   },
 
   // Step Level - Simple steps for each scenario
@@ -415,7 +412,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'step',
     products: ['storefront', 'inventory'],
     parents: ['scenario-product-search-shared'],
-    children: []
+    children: ['action-search-unified', 'action-filter-unified', 'action-display-unified']
   },
   'step-order-processing-unified': {
     id: 'step-order-processing-unified',
@@ -423,7 +420,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'step',
     products: ['storefront', 'inventory'],
     parents: ['scenario-order-processing-shared'],
-    children: []
+    children: ['action-receive-order-unified', 'action-process-order-unified', 'action-update-inventory-unified']
   },
   'step-customer-profile-unified': {
     id: 'step-customer-profile-unified',
@@ -431,7 +428,33 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'step',
     products: ['storefront', 'crm'],
     parents: ['scenario-customer-profiles-shared'],
-    children: []
+    children: ['action-collect-data-unified', 'action-merge-profiles-unified', 'action-sync-data-unified']
+  },
+  
+  // Shared steps for duplicate labels
+  'step-search-products-shared': {
+    id: 'step-search-products-shared',
+    label: 'Search Products',
+    level: 'step',
+    products: ['storefront', 'inventory'],
+    parents: ['scenario-product-search-shared'],
+    children: ['action-search-unified']
+  },
+  'step-receive-order-shared': {
+    id: 'step-receive-order-shared',
+    label: 'Receive Order',
+    level: 'step',
+    products: ['storefront', 'inventory'],
+    parents: ['scenario-order-processing-shared'],
+    children: ['action-receive-order-unified']
+  },
+  'step-collect-data-shared': {
+    id: 'step-collect-data-shared',
+    label: 'Collect Customer Data',
+    level: 'step',
+    products: ['storefront', 'crm'],
+    parents: ['scenario-customer-profiles-shared'],
+    children: ['action-collect-data-unified']
   },
 
   // Other necessary steps (simplified)
@@ -561,7 +584,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'step',
     products: ['storefront'],
     parents: ['scenario-recommendations'],
-    children: ['action-track-clicks', 'action-track-purchases']
+    children: ['action-track-clicks', 'action-track-purchases', 'action-analyze-behavior']
   },
   'step-suggest-products': {
     id: 'step-suggest-products',
@@ -1342,6 +1365,80 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     products: ['storefront'],
     parents: ['step-personalize'],
+    children: []
+  },
+  
+  // Unified actions for shared functionality
+  'action-search-unified': {
+    id: 'action-search-unified',
+    label: 'Unified Search',
+    level: 'action',
+    products: ['storefront', 'inventory'],
+    parents: ['step-product-search-unified', 'step-search-products-shared'],
+    children: []
+  },
+  'action-filter-unified': {
+    id: 'action-filter-unified',
+    label: 'Unified Filter',
+    level: 'action',
+    products: ['storefront', 'inventory'],
+    parents: ['step-product-search-unified'],
+    children: []
+  },
+  'action-display-unified': {
+    id: 'action-display-unified',
+    label: 'Unified Display',
+    level: 'action',
+    products: ['storefront', 'inventory'],
+    parents: ['step-product-search-unified'],
+    children: []
+  },
+  'action-receive-order-unified': {
+    id: 'action-receive-order-unified',
+    label: 'Unified Receive Order',
+    level: 'action',
+    products: ['storefront', 'inventory'],
+    parents: ['step-order-processing-unified', 'step-receive-order-shared'],
+    children: []
+  },
+  'action-process-order-unified': {
+    id: 'action-process-order-unified',
+    label: 'Unified Process Order',
+    level: 'action',
+    products: ['storefront', 'inventory'],
+    parents: ['step-order-processing-unified'],
+    children: []
+  },
+  'action-update-inventory-unified': {
+    id: 'action-update-inventory-unified',
+    label: 'Unified Update Inventory',
+    level: 'action',
+    products: ['storefront', 'inventory'],
+    parents: ['step-order-processing-unified'],
+    children: []
+  },
+  'action-collect-data-unified': {
+    id: 'action-collect-data-unified',
+    label: 'Unified Collect Data',
+    level: 'action',
+    products: ['storefront', 'crm'],
+    parents: ['step-customer-profile-unified', 'step-collect-data-shared'],
+    children: []
+  },
+  'action-merge-profiles-unified': {
+    id: 'action-merge-profiles-unified',
+    label: 'Unified Merge Profiles',
+    level: 'action',
+    products: ['storefront', 'crm'],
+    parents: ['step-customer-profile-unified'],
+    children: []
+  },
+  'action-sync-data-unified': {
+    id: 'action-sync-data-unified',
+    label: 'Unified Sync Data',
+    level: 'action',
+    products: ['storefront', 'crm'],
+    parents: ['step-customer-profile-unified'],
     children: []
   }
 };
