@@ -3,7 +3,7 @@
 
 import type { 
   FunctionalNode, 
-  UserIntent, 
+  UserQuery, 
   UserContext
 } from '../types';
 
@@ -47,10 +47,10 @@ export interface DomainConfig {
   // Functional hierarchy
   FUNCTIONAL_NODES: Record<string, FunctionalNode>;
   
-  // User intents
-  USER_INTENTS: UserIntent[];
+  // User querys
+  USER_QUERIES: UserQuery[];
   EXAMPLE_QUERIES: string[];
-  INTENT_INPUT_PLACEHOLDER: string;
+  QUERY_INPUT_PLACEHOLDER: string;
   
   // User contexts
   SAMPLE_CONTEXTS: Record<string, UserContext>;
@@ -137,9 +137,9 @@ export async function loadDomain(domainId: string): Promise<DomainConfig | null>
       DOMAIN_SYNONYMS: domainModule.DOMAIN_SYNONYMS,
       WORD_FORMS: domainModule.WORD_FORMS,
       FUNCTIONAL_NODES: domainModule.FUNCTIONAL_NODES,
-      USER_INTENTS: domainModule.USER_INTENTS,
+      USER_QUERIES: domainModule.USER_QUERIES,
       EXAMPLE_QUERIES: domainModule.EXAMPLE_QUERIES,
-      INTENT_INPUT_PLACEHOLDER: domainModule.INTENT_INPUT_PLACEHOLDER,
+      QUERY_INPUT_PLACEHOLDER: domainModule.QUERY_INPUT_PLACEHOLDER,
       SAMPLE_CONTEXTS: domainModule.SAMPLE_CONTEXTS
     };
     

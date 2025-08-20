@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
-import IntentDisambiguationSection from './sections/IntentDisambiguationSection';
+import QueryDisambiguationSection from './sections/QueryDisambiguationSection';
 import LandingPageSection from './sections/LandingPageSection';
 import TestRunnerFull from './components/TestRunnerFull';
 import DomainValidation from './components/DomainValidation';
+import NodeSearchDemo from './components/NodeSearchDemo';
 import { DOMAIN_METADATA } from './config/domainMetadata';
 
 function AppContent() {
@@ -14,7 +15,7 @@ function AppContent() {
   
   // Get current domain from URL
   const getCurrentDomain = () => {
-    if (location.pathname.includes('intent-disambiguation')) {
+    if (location.pathname.includes('query-disambiguation')) {
       const domainId = location.pathname.split('/').pop() || '';
       return DOMAIN_METADATA[domainId] || null;
     }
@@ -90,7 +91,7 @@ function AppContent() {
                   fontWeight: '500',
                   lineHeight: 1
                 }}>
-                  Intent Disambiguation Demo
+                  Query Disambiguation Demo
                 </p>
               </div>
               
@@ -172,7 +173,7 @@ function AppContent() {
                 Breeze.AI Semantic Engineering
               </h1>
               <p style={{ margin: 0, color: '#667eea', fontSize: 14, fontWeight: '500' }}>
-                Multi-Domain Intent Disambiguation Methodology
+                Multi-Domain Query Disambiguation Methodology
               </p>
             </div>
             <p style={{ margin: 0, color: '#666', fontSize: 13 }}>
@@ -197,15 +198,15 @@ function AppContent() {
               <LandingPageSection 
                 onDomainSelect={(domainId: string) => {
                   setSelectedDomain(domainId);
-                  navigate(`/intent-disambiguation/${domainId}`);
+                  navigate(`/query-disambiguation/${domainId}`);
                 }} 
               />
             } 
           />
           <Route 
-            path="/intent-disambiguation/:domainId" 
+            path="/query-disambiguation/:domainId" 
             element={
-              <IntentDisambiguationSection />
+              <QueryDisambiguationSection />
             } 
           />
           <Route 

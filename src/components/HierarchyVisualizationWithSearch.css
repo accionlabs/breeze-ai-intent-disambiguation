@@ -1,0 +1,250 @@
+.hierarchy-with-search {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Search Toggle Button */
+.search-toggle-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+  padding: 8px 15px;
+  background: white;
+  border: 2px solid #3498db;
+  border-radius: 20px;
+  color: #3498db;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-toggle-button:hover {
+  background: #3498db;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Search Panel */
+.search-panel {
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  width: 400px;
+  max-width: calc(100% - 20px);
+  z-index: 99;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 15px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Search Status */
+.search-status {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.status-text {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.selected-node {
+  flex: 1;
+  color: #3498db;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clear-search-button {
+  padding: 4px 10px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.clear-search-button:hover {
+  background: #c0392b;
+}
+
+/* Visualization Wrapper */
+.visualization-wrapper {
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.3s ease;
+}
+
+.visualization-wrapper.has-search-results {
+  /* Add visual indication when search is active */
+}
+
+/* Highlight searched nodes in the visualization */
+.visualization-wrapper.has-search-results .tree-node {
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.visualization-wrapper.has-search-results .tree-node._highlighted {
+  opacity: 1;
+  animation: pulse 1s infinite;
+}
+
+.visualization-wrapper.has-search-results .tree-node._selected {
+  opacity: 1;
+  box-shadow: 0 0 0 3px #3498db, 0 0 20px rgba(52, 152, 219, 0.4);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(52, 152, 219, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+  }
+}
+
+/* Search Details Panel */
+.search-details-panel {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 350px;
+  max-width: calc(100% - 20px);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 15px;
+  z-index: 98;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-details-panel h3 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #2c3e50;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 8px;
+}
+
+.node-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #7f8c8d;
+  min-width: 80px;
+}
+
+.detail-value {
+  flex: 1;
+  color: #2c3e50;
+  word-break: break-word;
+}
+
+.level-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.level-badge[data-level="product"] {
+  background: #e74c3c;
+}
+
+.level-badge[data-level="workflow"] {
+  background: #9b59b6;
+}
+
+.level-badge[data-level="outcome"] {
+  background: #3498db;
+}
+
+.level-badge[data-level="scenario"] {
+  background: #2ecc71;
+}
+
+.level-badge[data-level="step"] {
+  background: #f39c12;
+}
+
+.level-badge[data-level="action"] {
+  background: #95a5a6;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .search-panel {
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+  }
+  
+  .search-details-panel {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+}

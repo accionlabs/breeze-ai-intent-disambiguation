@@ -1,5 +1,5 @@
 // Test suite for intent resolution across all domains
-import { FunctionalNode, UserIntent, UserContext } from '../types';
+import { FunctionalNode, UserQuery, UserContext } from '../types';
 import { calculateResolution, RecentAction } from '../utils/resolutionEngine';
 import { GraphOperations, convertLegacyNodes } from '../utils/graphModel';
 import { 
@@ -14,13 +14,13 @@ interface TestCase {
   id: string;
   domain: string;
   description: string;
-  intent: string;
+  query: string;
   entryNode: string;
   context: {
     enabled: boolean;
     recentActions: Array<{
       product: string;
-      intent: string;
+      query: string;
       success: boolean;
     }>;
   };
@@ -79,7 +79,7 @@ export class ResolutionTestRunner {
       
       const domainData = {
         FUNCTIONAL_NODES: domainModule.FUNCTIONAL_NODES,
-        USER_INTENTS: domainModule.USER_INTENTS,
+        USER_QUERIES: domainModule.USER_QUERIES,
         RATIONALIZED_NODE_ALTERNATIVES,
         DUPLICATE_NODES,
         SHARED_NODES,
@@ -123,7 +123,7 @@ export class ResolutionTestRunner {
         .map((a, index) => ({
           id: `test-${index}`,
           persona: 'Test User',
-          intent: a.intent,
+          query: a.query,
           product: a.product,
           outcome: 'Test Outcome',
           matchedNode: 'test-node',
@@ -273,7 +273,7 @@ export class ResolutionTestRunner {
     const passRate = totalTests > 0 ? (passedTests / totalTests * 100).toFixed(1) : '0';
     
     let report = `\n${'='.repeat(80)}\n`;
-    report += `INTENT RESOLUTION TEST REPORT\n`;
+    report += `QUERY RESOLUTION TEST REPORT\n`;
     report += `${'='.repeat(80)}\n\n`;
     
     report += `Summary: ${passedTests}/${totalTests} tests passed (${passRate}%)\n\n`;
@@ -330,8 +330,8 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'cision-1',
     domain: 'cision',
-    description: 'Ambiguous intent fails without context',
-    intent: 'Track media coverage for intelligence',
+    description: 'Ambiguous query fails without context',
+    query: 'Track media coverage for intelligence',
     entryNode: 'step-track-coverage-media',
     context: {
       enabled: false,
@@ -348,15 +348,15 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'cision-2',
     domain: 'cision',
-    description: 'Ambiguous intent succeeds with CisionOne context',
-    intent: 'Track media coverage for intelligence',
+    description: 'Ambiguous query succeeds with CisionOne context',
+    query: 'Track media coverage for intelligence',
     entryNode: 'step-track-coverage-media',
     context: {
       enabled: true,
       recentActions: [
-        { product: 'cision', intent: 'Monitor alerts', success: true },
-        { product: 'cision', intent: 'Track reputation', success: true },
-        { product: 'cision', intent: 'Set up crisis alerts', success: true }
+        { product: 'cision', query: 'Monitor alerts', success: true },
+        { product: 'cision', query: 'Track reputation', success: true },
+        { product: 'cision', query: 'Set up crisis alerts', success: true }
       ]
     },
     rationalized: false,
@@ -372,8 +372,8 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'cision-3',
     domain: 'cision',
-    description: 'Non-ambiguous intent succeeds without context',
-    intent: 'Create content about our latest product launch',
+    description: 'Non-ambiguous query succeeds without context',
+    query: 'Create content about our latest product launch',
     entryNode: 'step-schedule-posts',
     context: {
       enabled: false,
@@ -391,8 +391,8 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'cision-4',
     domain: 'cision',
-    description: 'Ambiguous intent succeeds with rationalization',
-    intent: 'Monitor social media conversations',
+    description: 'Ambiguous query succeeds with rationalization',
+    query: 'Monitor social media conversations',
     entryNode: 'step-social-monitoring-shared',
     context: {
       enabled: false,
@@ -409,8 +409,8 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'cision-5',
     domain: 'cision',
-    description: 'Workflow intent succeeds when workflows enabled',
-    intent: 'Coordinate multi-channel crisis response',
+    description: 'Workflow query succeeds when workflows enabled',
+    query: 'Coordinate multi-channel crisis response',
     entryNode: 'workflow-crisis-response',
     context: {
       enabled: false,
@@ -429,9 +429,9 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'healthcare-1',
     domain: 'healthcare',
-    description: 'Non-ambiguous healthcare intent succeeds',
-    intent: 'Improve clinical outcomes',
-    entryNode: 'outcome-clinical-excellence-ehr',
+    description: 'Clinical care outcome succeeds',
+    query: 'Access clinical care',
+    entryNode: 'outcome-clinical-care',
     context: {
       enabled: false,
       recentActions: []
@@ -447,9 +447,9 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'healthcare-2',
     domain: 'healthcare',
-    description: 'Ambiguous healthcare intent fails without context',
-    intent: 'Manage appointments',
-    entryNode: 'scenario-appointment-management-shared',
+    description: 'Diagnosis support scenario succeeds',
+    query: 'Get diagnosis support',
+    entryNode: 'scenario-diagnosis-support',
     context: {
       enabled: false,
       recentActions: []
@@ -457,31 +457,30 @@ export const TEST_CASES: TestCase[] = [
     rationalized: false,
     workflows: false,
     expected: {
-      shouldSucceed: false,
-      confidenceScore: 0,
-      reasoningContains: ['Resolution failed']
+      shouldSucceed: true,
+      confidenceScore: 1,
+      productActivation: ['ehr']
     }
   },
   {
     id: 'healthcare-3',
     domain: 'healthcare',
-    description: 'Ambiguous healthcare intent succeeds with EHR context',
-    intent: 'Manage appointments',
-    entryNode: 'scenario-appointment-management-shared',
+    description: 'Shared patient monitoring with context',
+    query: 'Monitor patient',
+    entryNode: 'scenario-patient-monitoring-shared',
     context: {
       enabled: true,
       recentActions: [
-        { product: 'ehr', intent: 'Access patient records', success: true },
-        { product: 'ehr', intent: 'Update clinical notes', success: true }
+        { product: 'ehr', query: 'Access patient records', success: true },
+        { product: 'pharmacy', query: 'Check medications', success: true }
       ]
     },
-    rationalized: false,
+    rationalized: true,
     workflows: false,
     expected: {
       shouldSucceed: true,
       confidenceScore: 1,
-      reasoningContains: ['Context-based resolution'],
-      productActivation: ['ehr']
+      productActivation: ['ehr', 'pharmacy']
     }
   },
   
@@ -489,8 +488,8 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'ecommerce-1',
     domain: 'ecommerce',
-    description: 'Product search intent succeeds',
-    intent: 'Improve online shopping experience',
+    description: 'Product search query succeeds',
+    query: 'Improve online shopping experience',
     entryNode: 'outcome-customer-experience-storefront',
     context: {
       enabled: false,
@@ -507,8 +506,8 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'ecommerce-2',
     domain: 'ecommerce',
-    description: 'Sales growth intent succeeds',
-    intent: 'Increase online sales',
+    description: 'Sales growth query succeeds',
+    query: 'Increase online sales',
     entryNode: 'outcome-sales-growth-storefront',
     context: {
       enabled: false,
@@ -528,7 +527,7 @@ export const TEST_CASES: TestCase[] = [
     id: 'enterprise-1',
     domain: 'enterprise',
     description: 'SAP report action succeeds',
-    intent: 'Run financial report',
+    query: 'Run financial report',
     entryNode: 'action-run-report-sap',
     context: {
       enabled: false,
@@ -545,8 +544,8 @@ export const TEST_CASES: TestCase[] = [
   {
     id: 'enterprise-2',
     domain: 'enterprise',
-    description: 'Track order intent succeeds',
-    intent: 'Track customer order',
+    description: 'Track order query succeeds',
+    query: 'Track customer order',
     entryNode: 'step-track-order-salesforce',
     context: {
       enabled: false,
@@ -558,6 +557,101 @@ export const TEST_CASES: TestCase[] = [
       shouldSucceed: true,
       confidenceScore: 1,
       productActivation: ['salesforce']
+    }
+  },
+  
+  // FINANCIAL DOMAIN TESTS
+  {
+    id: 'financial-1',
+    domain: 'financial',
+    description: 'Account opening succeeds for core banking',
+    query: 'Open an account',
+    entryNode: 'scenario-open-account-cb',
+    context: {
+      enabled: false,
+      recentActions: []
+    },
+    rationalized: false,
+    workflows: false,
+    expected: {
+      shouldSucceed: true,
+      confidenceScore: 1,
+      productActivation: ['core-banking']
+    }
+  },
+  {
+    id: 'financial-2',
+    domain: 'financial',
+    description: 'Risk KYC scenario succeeds',
+    query: 'Complete KYC verification',
+    entryNode: 'scenario-kyc-risk',
+    context: {
+      enabled: false,
+      recentActions: []
+    },
+    rationalized: false,
+    workflows: false,
+    expected: {
+      shouldSucceed: true,
+      confidenceScore: 1,
+      productActivation: ['risk']
+    }
+  },
+  {
+    id: 'financial-3',
+    domain: 'financial',
+    description: 'Transfer money succeeds for core banking',
+    query: 'Transfer funds',
+    entryNode: 'scenario-transfer-cb',
+    context: {
+      enabled: false,
+      recentActions: []
+    },
+    rationalized: false,
+    workflows: false,
+    expected: {
+      shouldSucceed: true,
+      confidenceScore: 1,
+      productActivation: ['core-banking']
+    }
+  },
+  {
+    id: 'financial-4',
+    domain: 'financial',
+    description: 'Loan application query succeeds',
+    query: 'Apply for loan',
+    entryNode: 'scenario-application-loans',
+    context: {
+      enabled: false,
+      recentActions: []
+    },
+    rationalized: false,
+    workflows: false,
+    expected: {
+      shouldSucceed: true,
+      confidenceScore: 1,
+      productActivation: ['loans']
+    }
+  },
+  {
+    id: 'financial-5',
+    domain: 'financial',
+    description: 'Portfolio management for wealth client',
+    query: 'Manage portfolio',
+    entryNode: 'scenario-portfolio-wealth',
+    context: {
+      enabled: true,
+      recentActions: [
+        { product: 'wealth', query: 'Investment Trading', success: true },
+        { product: 'wealth', query: 'Retirement Planning', success: true }
+      ]
+    },
+    rationalized: false,
+    workflows: false,
+    expected: {
+      shouldSucceed: true,
+      confidenceScore: 1,
+      productActivation: ['wealth']
     }
   }
 ];

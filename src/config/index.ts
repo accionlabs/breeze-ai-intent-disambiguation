@@ -1,4 +1,4 @@
-// Main configuration export file for the Intent Disambiguation system
+// Main configuration export file for the Query Disambiguation system
 // Dynamically loads domain configuration based on URL
 
 import { convertLegacyNodes, GraphOperations } from '../utils/graphModel';
@@ -12,8 +12,8 @@ export { LEVEL_COLORS, LEVEL_DESCRIPTIONS, LAYOUT, UI_LAYOUT, DISPLAY_LIMITS, BU
 // Function to get current domain from URL
 const getCurrentDomainId = (): string => {
   const path = window.location.pathname;
-  if (path.includes('/intent-disambiguation/')) {
-    const domainId = path.split('/intent-disambiguation/')[1]?.split('/')[0];
+  if (path.includes('/query-disambiguation/')) {
+    const domainId = path.split('/query-disambiguation/')[1]?.split('/')[0];
     return domainId || 'cision';
   }
   return 'cision'; // Default domain
@@ -47,9 +47,9 @@ export const INDUSTRY_VERTICALS = domainConfig.INDUSTRY_VERTICALS;
 export const DOMAIN_SYNONYMS = domainConfig.DOMAIN_SYNONYMS;
 export const WORD_FORMS = domainConfig.WORD_FORMS;
 export const FUNCTIONAL_NODES = domainConfig.FUNCTIONAL_NODES;
-export const USER_INTENTS = domainConfig.USER_INTENTS;
+export const USER_QUERIES = domainConfig.USER_QUERIES;
 export const EXAMPLE_QUERIES = domainConfig.EXAMPLE_QUERIES;
-export const INTENT_INPUT_PLACEHOLDER = domainConfig.INTENT_INPUT_PLACEHOLDER;
+export const QUERY_INPUT_PLACEHOLDER = domainConfig.QUERY_INPUT_PLACEHOLDER;
 export const SAMPLE_CONTEXTS = domainConfig.SAMPLE_CONTEXTS;
 export const RATIONALIZED_NODE_ALTERNATIVES = domainConfig.RATIONALIZED_NODE_ALTERNATIVES;
 export const DUPLICATE_NODES = domainConfig.DUPLICATE_NODES;

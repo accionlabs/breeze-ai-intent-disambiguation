@@ -222,7 +222,7 @@ const DomainCards: React.FC<DomainCardsProps> = ({ onDomainSelect }) => {
       keywords: ['Banking', 'Investments', 'Loans', 'Transactions'],
       primaryColor: '#3b82f6',
       accentColor: '#2563eb',
-      available: false
+      available: true
     }
   ];
   
@@ -256,7 +256,7 @@ const DomainCards: React.FC<DomainCardsProps> = ({ onDomainSelect }) => {
         margin: '0 auto 32px'
       }}>
         Choose from available domain demonstrations below. Each domain showcases different aspects
-        of semantic engineering and intent disambiguation.
+        of semantic engineering and query disambiguation.
       </p>
       
       {/* Domain Cards Grid */}

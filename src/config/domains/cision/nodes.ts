@@ -78,7 +78,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'outcome-media-intelligence',
     level: 'outcome',
     label: 'Media Intelligence',
-    children: ['scenario-media-monitoring-cision', 'scenario-media-monitoring-shared', 'scenario-journalist-outreach'],
+    children: ['scenario-media-monitoring-cision', 'scenario-journalist-outreach'],
     parents: ['product-cision', 'workflow-crisis-response', 'workflow-brand-protection'],
     description: 'Track and analyze media coverage'
   },
@@ -94,7 +94,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'outcome-consumer-intelligence',
     level: 'outcome',
     label: 'Consumer Intelligence',
-    children: ['scenario-media-monitoring-brandwatch', 'scenario-media-monitoring-shared', 'scenario-sentiment-analysis', 'scenario-audience-insights'],
+    children: ['scenario-media-monitoring-brandwatch', 'scenario-sentiment-analysis', 'scenario-audience-insights'],
     parents: ['product-brandwatch', 'workflow-campaign-intelligence'],
     description: 'Deep consumer insights and sentiment analysis'
   },
@@ -102,7 +102,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'outcome-social-engagement',
     level: 'outcome',
     label: 'Social Engagement',
-    children: ['scenario-media-monitoring-smm', 'scenario-media-monitoring-shared', 'scenario-content-management', 'scenario-community-engagement'],
+    children: ['scenario-media-monitoring-smm', 'scenario-content-management', 'scenario-community-engagement'],
     parents: ['product-smm', 'workflow-crisis-response'],
     description: 'Manage social media presence and engagement'
   },
@@ -154,20 +154,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
   
   // Shared Scenario (after rationalization - includes union of all children)
-  'scenario-media-monitoring-shared': {
-    id: 'scenario-media-monitoring-shared',
-    level: 'scenario',
-    label: 'Media Monitoring',
-    children: [
-      // Only shared/unified steps should be here
-      // Unified social monitoring (contains union of social monitoring actions)
-      'step-social-monitoring-shared',
-      'step-analytics-reporting-shared'
-    ],
-    parents: ['outcome-media-intelligence', 'outcome-consumer-intelligence', 'outcome-social-engagement'],
-    products: ['cision', 'brandwatch', 'smm'],
-    description: 'Unified media monitoring with all capabilities from all products'
-  },
   'scenario-journalist-outreach': {
     id: 'scenario-journalist-outreach',
     level: 'scenario',
@@ -244,7 +230,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-campaign-analytics',
     level: 'scenario',
     label: 'Campaign Analytics',
-    children: ['step-measure-reach', 'step-analyze-performance', 'step-analytics-reporting-shared'],
+    children: ['step-measure-reach', 'step-analyze-performance'],
     parents: ['outcome-performance-measurement'],
     description: 'Analyze campaign performance metrics'
   },
@@ -252,7 +238,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-roi-reporting',
     level: 'scenario',
     label: 'ROI Reporting',
-    children: ['step-compile-metrics', 'step-generate-reports', 'step-analytics-reporting-shared'],
+    children: ['step-compile-metrics', 'step-generate-reports'],
     parents: ['outcome-performance-measurement'],
     description: 'Generate ROI and executive reports'
   },
@@ -335,27 +321,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
   
   // Shared Steps (after rationalization)
-  'step-social-monitoring-shared': {
-    id: 'step-social-monitoring-shared',
-    level: 'step',
-    label: 'Monitor Social Media',
-    children: [
-      // Shared action for unified tracking
-      'action-track-social-shared',
-      // Union of all actual actions from the three products
-      'action-track-social-cision',
-      'action-basic-sentiment-cision',
-      'action-track-social-brandwatch',
-      'action-deep-sentiment-brandwatch',
-      'action-trend-analysis-brandwatch',
-      'action-track-social-smm',
-      'action-realtime-track-smm',
-      'action-engagement-metrics-smm'
-    ],
-    parents: ['scenario-media-monitoring-shared'],
-    products: ['cision', 'brandwatch', 'smm'],
-    description: 'Unified social media monitoring with all capabilities from all products'
-  },
   'step-track-coverage-media': {
     id: 'step-track-coverage-media',
     level: 'step',
@@ -540,19 +505,10 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-analyze-performance',
     level: 'step',
     label: 'Analyze Performance',
-    children: ['action-performance-metrics', 'action-benchmark-comparison', 'action-analytics-shared'],
+    children: ['action-performance-metrics', 'action-benchmark-comparison'],
     parents: ['scenario-campaign-analytics'],
     products: ['trendkite'],
     description: 'Analyze campaign performance'
-  },
-  'step-analytics-reporting-shared': {
-    id: 'step-analytics-reporting-shared',
-    level: 'step',
-    label: 'Analytics & Reporting',
-    children: ['action-analytics-shared', 'action-reporting-shared', 'action-attribution-shared'],
-    parents: ['scenario-campaign-analytics', 'scenario-roi-reporting', 'scenario-media-monitoring-shared'],
-    products: ['trendkite', 'cision', 'brandwatch'],
-    description: 'Shared analytics and reporting capability'
   },
   'step-compile-metrics': {
     id: 'step-compile-metrics',
@@ -655,7 +611,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Track Social Media',
     children: [],
-    parents: ['step-social-monitoring-cision', 'step-social-monitoring-shared'],
+    parents: ['step-social-monitoring-cision'],
     products: ['cision'],
     description: 'CisionOne basic social tracking'
   },
@@ -664,7 +620,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Basic Sentiment',
     children: [],
-    parents: ['step-social-monitoring-cision', 'step-social-monitoring-shared'],
+    parents: ['step-social-monitoring-cision'],
     products: ['cision'],
     description: 'CisionOne basic sentiment analysis'
   },
@@ -675,7 +631,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Track Social Media',
     children: [],
-    parents: ['step-social-monitoring-brandwatch', 'step-social-monitoring-shared'],
+    parents: ['step-social-monitoring-brandwatch'],
     products: ['brandwatch'],
     description: 'Brandwatch comprehensive tracking'
   },
@@ -684,7 +640,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Deep Sentiment Analysis',
     children: [],
-    parents: ['step-social-monitoring-brandwatch', 'step-social-monitoring-shared'],
+    parents: ['step-social-monitoring-brandwatch'],
     products: ['brandwatch'],
     description: 'Brandwatch AI-powered sentiment'
   },
@@ -693,7 +649,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Trend Analysis',
     children: [],
-    parents: ['step-social-monitoring-brandwatch', 'step-social-monitoring-shared'],
+    parents: ['step-social-monitoring-brandwatch'],
     products: ['brandwatch'],
     description: 'Brandwatch trend detection'
   },
@@ -704,7 +660,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Track Social Media',
     children: [],
-    parents: ['step-social-monitoring-smm', 'step-social-monitoring-shared'],
+    parents: ['step-social-monitoring-smm'],
     products: ['smm'],
     description: 'SMM social tracking'
   },
@@ -713,7 +669,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Real-time Tracking',
     children: [],
-    parents: ['step-social-monitoring-smm', 'step-social-monitoring-shared'],
+    parents: ['step-social-monitoring-smm'],
     products: ['smm'],
     description: 'SMM real-time monitoring'
   },
@@ -722,48 +678,12 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'action',
     label: 'Engagement Metrics',
     children: [],
-    parents: ['step-social-monitoring-smm', 'step-social-monitoring-shared'],
+    parents: ['step-social-monitoring-smm'],
     products: ['smm'],
     description: 'SMM engagement analytics'
   },
   
   // Shared actions for rationalized capabilities
-  'action-track-social-shared': {
-    id: 'action-track-social-shared',
-    level: 'action',
-    label: 'Track Social Media',
-    children: [],
-    parents: ['step-social-monitoring-shared'],
-    products: ['cision', 'brandwatch', 'smm'],
-    description: 'Unified social media tracking capability'
-  },
-  'action-analytics-shared': {
-    id: 'action-analytics-shared',
-    level: 'action',
-    label: 'Generate Analytics',
-    children: [],
-    parents: ['step-analytics-reporting-shared', 'step-analyze-performance'],
-    products: ['trendkite', 'cision', 'brandwatch'],
-    description: 'Shared analytics generation'
-  },
-  'action-reporting-shared': {
-    id: 'action-reporting-shared',
-    level: 'action',
-    label: 'Create Reports',
-    children: [],
-    parents: ['step-analytics-reporting-shared'],
-    products: ['trendkite', 'cision', 'brandwatch'],
-    description: 'Shared reporting capability'
-  },
-  'action-attribution-shared': {
-    id: 'action-attribution-shared',
-    level: 'action',
-    label: 'Attribution Analysis',
-    children: [],
-    parents: ['step-analytics-reporting-shared'],
-    products: ['trendkite', 'cision', 'brandwatch'],
-    description: 'Shared attribution analysis'
-  },
   
   // Action Level - CisionOne Actions
   'action-set-media-alert-media': {
@@ -1208,4 +1128,4 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   }
 };
 
-// User Intent Examples
+// User Query Examples

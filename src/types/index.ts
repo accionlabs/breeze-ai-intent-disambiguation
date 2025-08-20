@@ -1,4 +1,4 @@
-// Type definitions for the Intent Disambiguation system
+// Type definitions for the Query Disambiguation system
 // These types are domain-agnostic and used across all configurations
 
 export type HierarchyLevel = 'product' | 'workflow' | 'outcome' | 'scenario' | 'step' | 'action';
@@ -32,12 +32,14 @@ export interface UserContext {
   };
 }
 
-export interface UserIntent {
+export interface UserQuery {
   id: string;
   text: string;
   entryLevel: HierarchyLevel;
   entryNode: string;
   ambiguous?: boolean;
+  isDuplicate?: boolean;  // True for ambiguous querys that map to duplicate nodes
+  isWorkflow?: boolean;   // True for workflow querys that orchestrate across products
   contextDependentResolutions?: {
     role: string;
     resolution: Resolution;

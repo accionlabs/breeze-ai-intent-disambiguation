@@ -171,7 +171,7 @@ const UserContextBar: React.FC<UserContextBarProps> = ({
               fontSize: 10,
               fontStyle: 'italic'
             }}>
-              No product usage yet - select intents to build history
+              No product usage yet - select queries to build history
             </div>
           )}
         </div>

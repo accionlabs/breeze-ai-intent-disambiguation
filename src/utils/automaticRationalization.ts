@@ -350,7 +350,8 @@ export function validateAgainstManualConfig(
 
 /**
  * Generate list of duplicate nodes from rationalized groups
- * Includes all descendants of duplicate nodes
+ * Only includes the direct duplicate nodes, not their descendants
+ * When rationalization is ON, these nodes will be hidden and replaced by shared nodes
  */
 export function generateDuplicateNodes(
   groups: RationalizedGroup[],
@@ -358,33 +359,17 @@ export function generateDuplicateNodes(
 ): string[] {
   const duplicateNodes = new Set<string>();
   
-  // Add direct duplicates
+  // Add only direct duplicates (not their descendants)
   for (const group of groups) {
     for (const duplicate of group.duplicates) {
       duplicateNodes.add(duplicate.nodeId);
     }
   }
   
-  // If nodes are provided, also add all descendants of duplicate nodes
-  if (nodes) {
-    const addDescendants = (nodeId: string) => {
-      const node = nodes[nodeId];
-      if (node && node.children) {
-        for (const childId of node.children) {
-          if (!duplicateNodes.has(childId)) {
-            duplicateNodes.add(childId);
-            addDescendants(childId); // Recursively add all descendants
-          }
-        }
-      }
-    };
-    
-    // For each duplicate node, add all its descendants
-    const initialDuplicates = Array.from(duplicateNodes);
-    for (const nodeId of initialDuplicates) {
-      addDescendants(nodeId);
-    }
-  }
+  // NOTE: We do NOT add descendants because:
+  // 1. When a duplicate node is hidden, its children should be connected to the shared node
+  // 2. The shared node contains the union of all children from duplicates
+  // 3. These children should remain visible as part of the rationalized structure
   
   return Array.from(duplicateNodes);
 }

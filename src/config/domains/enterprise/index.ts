@@ -1,7 +1,7 @@
 // Enterprise Operations domain exports
 export * from './domain';
 export * from './nodes';
-export * from './intents';
+export * from './queries';
 export * from './contexts';
 
 // Domain metadata for registration

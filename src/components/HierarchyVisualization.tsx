@@ -12,13 +12,15 @@ import {
 } from '../config';
 import type { NodeMetadata } from '../utils/graphModel';
 import TreeNode from './TreeNode';
+import NodeSearch from './NodeSearch';
 import { DEFAULT_LAYOUT_CONFIG } from '../types/layout';
 import { calculateCompactBranchLayout } from '../utils/layoutCalculators';
+import { SearchResult } from '../utils/nodeSearch';
 
 export type ExpansionMode = 'single' | 'multiple';
 
 interface HierarchyVisualizationProps {
-  selectedIntent?: string;
+  selectedQuery?: string;
   entryNode?: string;
   resolution?: Resolution;
   userContext?: UserContext;
@@ -39,7 +41,7 @@ interface NodePosition {
 }
 
 const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
-  selectedIntent,
+  selectedQuery,
   entryNode,
   resolution,
   userContext,
@@ -56,25 +58,32 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   const FUNCTIONAL_GRAPH = domainConfig?.FUNCTIONAL_GRAPH || require('../config').FUNCTIONAL_GRAPH;
   const graphOps = domainConfig?.graphOps || require('../config').graphOps;
   const PRODUCT_COLORS = domainConfig?.PRODUCT_COLORS || require('../config').PRODUCT_COLORS;
-  const DUPLICATE_NODES = domainConfig?.DUPLICATE_NODES || require('../config').DUPLICATE_NODES;
-  const SHARED_NODES = domainConfig?.SHARED_NODES || require('../config').SHARED_NODES;
-  // Use the most recent action's resolution if there's no selected intent
+  const DUPLICATE_NODES = domainConfig?.DUPLICATE_NODES || [];
+  const SHARED_NODES = domainConfig?.SHARED_NODES || [];
+  
+  // Debug logging (disabled)
+  // console.log('HierarchyVisualization - SHARED_NODES:', SHARED_NODES);
+  // console.log('HierarchyVisualization - showRationalized:', showRationalized);
+  // Use the most recent action's resolution if there's no selected query
   // But only if a recent action is actually selected (not deselected by user)
   const selectedRecentAction = recentActions.length > 0 ? recentActions[0] : null;
   const effectiveResolution = resolution || selectedRecentAction?.resolution;
   const effectiveEntryNode = entryNode || selectedRecentAction?.resolution?.entryNode;
   const [animationPhase, setAnimationPhase] = useState<'entry' | 'upward' | 'downward' | 'complete'>('entry');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [lastExpandedNode, setLastExpandedNode] = useState<string | null>(null); // Track last expanded node
+  
+  // Search state
+  const [showSearch, setShowSearch] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchHighlightedNodes, setSearchHighlightedNodes] = useState<Set<string>>(new Set());
+  const [searchExpandedNodes, setSearchExpandedNodes] = useState<Set<string>>(new Set());
   
   // d3-zoom state and refs
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
   
-  // Focus mode state
-  const [focusMode, setFocusMode] = useState(false);
   const [pendingFocusNode, setPendingFocusNode] = useState<string | null>(null);
   const [focusBounds, setFocusBounds] = useState<{minX: number, maxX: number, minY: number, maxY: number} | null>(null);
   
@@ -184,9 +193,9 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   useEffect(() => {
     const nodesToExpand = new Set<string>();
     
-    // First, handle intent selection if present
-    if ((selectedIntent || effectiveResolution) && effectiveEntryNode) {
-      // When intent is selected or recent action is selected, expand nodes along the matched path
+    // First, handle query selection if present
+    if ((selectedQuery || effectiveResolution) && effectiveEntryNode) {
+      // When query is selected or recent action is selected, expand nodes along the matched path
       // Build path from entry node up to root using graph model
       const ancestors = graphOps.getAncestors(effectiveEntryNode);
       
@@ -224,7 +233,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       
     }
     
-    // Then, handle overlaps if showOverlaps is ON and no intent is selected
+    // Then, handle overlaps if showOverlaps is ON and no query is selected
     else if (showOverlaps) {
       // Use the imported lists from config
       // Determine which nodes to use based on rationalization state
@@ -259,7 +268,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     
     // Set the final expanded nodes
     setExpandedNodes(nodesToExpand);
-  }, [selectedIntent, effectiveResolution, effectiveEntryNode, matchedNodes, showOverlaps, showRationalized]);
+  }, [selectedQuery, effectiveResolution, effectiveEntryNode, matchedNodes, showOverlaps, showRationalized]);
 
   // Don't auto-reset zoom and pan - let user control it manually or via focus mode
 
@@ -274,6 +283,18 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       const node = FUNCTIONAL_GRAPH.nodes[nodeId];
       if (!node) return;
       
+      // Debug Customer 360 nodes specifically (disabled)
+      // if (node.label && node.label.includes('Customer 360')) {
+      //   console.log(`Processing Customer 360 node: ${nodeId}`, {
+      //     label: node.label,
+      //     showRationalized,
+      //     isInDuplicates: DUPLICATE_NODES.includes(nodeId),
+      //     isInShared: SHARED_NODES.includes(nodeId),
+      //     hasSharedSuffix: nodeId.includes('-shared'),
+      //     willBeHidden: showRationalized ? DUPLICATE_NODES.includes(nodeId) : (SHARED_NODES.includes(nodeId) || nodeId.includes('-shared'))
+      //   });
+      // }
+      
       // Filter nodes based on rationalized state
       // Only filter specific duplicate nodes that have shared alternatives
       // Using imported constants from config
@@ -285,35 +306,50 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       
       // Filter based on independent toggle states
       if (showRationalized) {
-        // When rationalized is ON, hide duplicate nodes UNLESS they are descendants of shared nodes
+        // When rationalized is ON, hide duplicate nodes but show shared nodes
         if (DUPLICATE_NODES.includes(nodeId)) {
-          // Check if this duplicate node is a descendant of a shared node
-          const ancestors = graphOps.getAncestors(nodeId);
-          const hasSharedAncestor = ancestors.some((ancestorId: string) => SHARED_NODES.includes(ancestorId));
-          
-          // If it has a shared ancestor, keep it visible (it's part of the unified structure)
-          if (!hasSharedAncestor) {
-            return; // Only hide if it doesn't have a shared ancestor
-          }
+          return; // Hide duplicate nodes
         }
+        // Shared nodes will be shown through special handling below
       } else {
         // When rationalized is OFF, hide shared nodes
-        if (SHARED_NODES.includes(nodeId)) {
+        if (SHARED_NODES.includes(nodeId) || nodeId.includes('-shared') || nodeId.includes('-unified')) {
+          // Also check for -shared and -unified suffix as a fallback
           return;
         }
       }
       
       // Check if this node should be visible
-      const shouldBeVisible = selectedIntent 
-        ? matchedNodes.has(nodeId)  // When intent selected, only show matched nodes
-        : true;  // When no intent, show all nodes that are reached through expanded parents
+      const shouldBeVisible = selectedQuery 
+        ? matchedNodes.has(nodeId)  // When query selected, only show matched nodes
+        : true;  // When no query, show all nodes that are reached through expanded parents
       
       if (shouldBeVisible && parentVisible && parentExpanded) {
         visible.add(nodeId);
         
         // Traverse children, passing whether this node is expanded
         const isThisNodeExpanded = expandedNodes.has(nodeId);
-        const children = graphOps.getChildren(nodeId);
+        let children = graphOps.getChildren(nodeId);
+        
+        // When rationalization is ON, also include shared nodes that should replace duplicates
+        if (showRationalized && !SHARED_NODES.includes(nodeId)) {
+          // For each child that is a duplicate, also traverse its shared replacement
+          const additionalChildren: string[] = [];
+          children.forEach((childId: string) => {
+            if (DUPLICATE_NODES.includes(childId)) {
+              // Find the shared node that replaces this duplicate
+              SHARED_NODES.forEach((sharedId: string) => {
+                const sharedNode = FUNCTIONAL_NODES[sharedId];
+                if (sharedNode && sharedNode.parents && sharedNode.parents.includes(nodeId)) {
+                  additionalChildren.push(sharedId);
+                }
+              });
+            }
+          });
+          // Add shared nodes to children list
+          children = [...children, ...additionalChildren];
+        }
+        
         children.forEach((childId: string) => {
           dfsCollectVisible(childId, true, isThisNodeExpanded);
         });
@@ -323,8 +359,39 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     // Start DFS from root nodes (products)
     const roots = Array.from(FUNCTIONAL_GRAPH.graph.roots);
     
-    // When showing overlaps and no intent is selected, show all roots but only traverse if expanded
-    if (showOverlaps && !selectedIntent) {
+    // Debug: Only log if there are issues
+    const allNodesInGraph = Object.keys(FUNCTIONAL_NODES);
+    
+    // After traversal, check which nodes are not visible
+    const checkUnreachable = () => {
+      const unreachable = allNodesInGraph.filter(id => !visible.has(id));
+      // Only log problem nodes (not duplicates/shared that are queryionally hidden)
+      const problemNodes = unreachable.filter(nodeId => {
+        const node = FUNCTIONAL_NODES[nodeId];
+        if (!node) return false;
+        
+        // If rationalized is ON, duplicates should be unreachable - that's OK
+        if (showRationalized && DUPLICATE_NODES.includes(nodeId)) return false;
+        
+        // If rationalized is OFF, shared nodes should be unreachable - that's OK
+        if (!showRationalized && (SHARED_NODES.includes(nodeId) || nodeId.includes('-shared'))) return false;
+        
+        // All other unreachable nodes are problems
+        return true;
+      });
+      
+      if (problemNodes.length > 0) {
+        console.error(`❌ Found ${problemNodes.length} problem nodes (should be reachable but aren't):`);
+        problemNodes.forEach(nodeId => {
+          const node = FUNCTIONAL_NODES[nodeId];
+          console.log(`  - ${nodeId}: "${node.label}" (${node.level})`);
+          console.log(`    Parents: ${node.parents?.join(', ')}`);
+        });
+      }
+    };
+    
+    // When showing overlaps and no query is selected, show all roots but only traverse if expanded
+    if (showOverlaps && !selectedQuery) {
       (roots as string[]).forEach((rootId: string) => {
         // Always make root visible when showing overlaps
         visible.add(rootId);
@@ -337,8 +404,8 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           });
         }
       });
-    } else if (selectedIntent) {
-      // When intent selected, only show roots that match
+    } else if (selectedQuery) {
+      // When query selected, only show roots that match
       (roots as string[]).forEach((rootId: string) => {
         if (matchedNodes.has(rootId)) {
           dfsCollectVisible(rootId, true, true);
@@ -359,11 +426,21 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       });
     }
     
+    // Check for unreachable nodes
+    checkUnreachable();
+    
     return visible;
-  }, [expandedNodes, selectedIntent, matchedNodes, showOverlaps, showRationalized, showWorkflows]);
+  }, [expandedNodes, selectedQuery, matchedNodes, showOverlaps, showRationalized, showWorkflows, DUPLICATE_NODES, SHARED_NODES, FUNCTIONAL_NODES, graphOps]);
 
   // Calculate node positions using selected layout strategy
   const { nodePositions, graphBounds } = useMemo(() => {
+    // Debug logging for rationalization
+    if (showRationalized) {
+      console.log('Rationalization ON - Debug Info:');
+      console.log('DUPLICATE_NODES:', DUPLICATE_NODES);
+      console.log('SHARED_NODES:', SHARED_NODES);
+      console.log('Visible nodes count:', visibleNodes.size);
+    }
     
     // Use layout constants from config
     const { NODE_WIDTH, MIN_NODE_SPACING, MARGIN, LABEL_MARGIN } = LAYOUT;
@@ -522,14 +599,36 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     
     // Convert layout result to NodePosition format expected by the component
     const positions: Record<string, NodePosition> = {};
+    
+    // Debug: Check for nodes getting positions but not visible
+    const positionsButNotVisible: string[] = [];
+    
     Object.entries(layoutResult.positions).forEach(([nodeId, pos]) => {
+      const isVisible = visibleNodes.has(nodeId);
+      
+      if (!isVisible) {
+        positionsButNotVisible.push(nodeId);
+      }
+      
       positions[nodeId] = {
         x: pos.x,
         y: pos.y,
         node: FUNCTIONAL_NODES[nodeId],
-        visible: visibleNodes.has(nodeId)
+        visible: isVisible
       };
     });
+    
+    // Only log if there are unexpected nodes with positions
+    const unexpectedPositions = positionsButNotVisible.filter(nodeId => {
+      // It's OK for these to have positions but not be visible
+      if (showRationalized && DUPLICATE_NODES.includes(nodeId)) return false;
+      if (!showRationalized && (SHARED_NODES.includes(nodeId) || nodeId.includes('-shared'))) return false;
+      return true;
+    });
+    
+    if (unexpectedPositions.length > 0) {
+      console.error(`❌ ${unexpectedPositions.length} nodes have positions but shouldn't be visible:`, unexpectedPositions);
+    }
 
     // Add positions for hidden nodes (for smooth transitions)
     Object.keys(FUNCTIONAL_GRAPH.nodes).forEach((nodeId: string) => {
@@ -559,7 +658,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     });
 
     return { nodePositions: positions, graphBounds: layoutResult.graphBounds };
-  }, [visibleNodes, showWorkflows, FUNCTIONAL_NODES, FUNCTIONAL_GRAPH.nodes, graphOps]);
+  }, [visibleNodes, showWorkflows, FUNCTIONAL_NODES, FUNCTIONAL_GRAPH.nodes, graphOps, showRationalized, DUPLICATE_NODES, SHARED_NODES]);
 
 
   // Calculate confidence based on user context
@@ -638,7 +737,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
 
   // Animation control
   useEffect(() => {
-    if (!selectedIntent) {
+    if (!selectedQuery) {
       setAnimationPhase('entry');
       return;
     }
@@ -656,7 +755,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     }, 800);
 
     return () => clearInterval(interval);
-  }, [selectedIntent]);
+  }, [selectedQuery]);
 
   // Zoom control handlers using d3-zoom API
   const handleZoomIn = useCallback(() => {
@@ -801,7 +900,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
 
   // Handle focus on pending node using d3-zoom
   useEffect(() => {
-    if (pendingFocusNode && nodePositions[pendingFocusNode] && focusMode) {
+    if (pendingFocusNode && nodePositions[pendingFocusNode]) {
       // Collect all visible nodes in the branch
       const branchNodes: string[] = [pendingFocusNode];
       
@@ -831,17 +930,17 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       // Clear the pending focus node
       setPendingFocusNode(null);
     }
-  }, [pendingFocusNode, nodePositions, expandedNodes, visibleNodes, focusMode, graphOps, autoFocus]);
+  }, [pendingFocusNode, nodePositions, expandedNodes, visibleNodes, graphOps, autoFocus]);
 
   const toggleNodeExpansion = (nodeId: string) => {
     const children = graphOps.getChildren(nodeId);
     if (children.length === 0) return;
     
-    // If intent is selected, only allow toggling matched nodes
-    if (selectedIntent && !matchedNodes.has(nodeId)) return;
+    // If query is selected, only allow toggling matched nodes
+    if (selectedQuery && !matchedNodes.has(nodeId)) return;
     
     // Check if this node has any matched children to expand
-    const hasMatchedChildren = selectedIntent ? 
+    const hasMatchedChildren = selectedQuery ? 
       children.some((childId: string) => matchedNodes.has(childId)) : 
       true;
     
@@ -1011,10 +1110,9 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
     const isExpanded = expandedNodes.has(nodeId);
     const children = graphOps.getChildren(nodeId);
     const hasChildren = children.length > 0;
-    const hasMatchedChildren = selectedIntent ? 
+    const hasMatchedChildren = selectedQuery ? 
       children.some((childId: string) => matchedNodes.has(childId)) : 
       hasChildren;
-    const isHovered = hoveredNode === nodeId;
 
     const productColor = getNodeProductColor(nodeId);
     
@@ -1091,11 +1189,11 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         isExpanded={isExpanded}
         hasChildren={hasChildren}
         hasMatchedChildren={hasMatchedChildren}
-        isHovered={isHovered}
+        isHovered={false}
         confidence={confidence}
         showContext={showContext}
         animationPhase={animationPhase}
-        showConfidence={selectedIntent !== undefined && userContext && userContext.history.length > 0}
+        showConfidence={selectedQuery !== undefined && userContext && userContext.history.length > 0}
         fillColor={nodeFillColor}
         strokeColor={nodeStrokeColor}
         strokeWidth={strokeWidthOverride}
@@ -1110,16 +1208,14 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
             toggleNodeExpansion(nodeId);
           }
         }}
-        onMouseEnter={() => setHoveredNode(nodeId)}
-        onMouseLeave={() => setHoveredNode(null)}
       />
     );
   };
 
   // Auto-focus disabled to prevent unwanted zoom changes
-  // Uncomment this effect to enable auto-focus on intent selection
+  // Uncomment this effect to enable auto-focus on query selection
   // useEffect(() => {
-  //   if (selectedIntent && matchedNodes.size > 0 && nodePositions) {
+  //   if (selectedQuery && matchedNodes.size > 0 && nodePositions) {
   //     // Small delay to let the graph render first
   //     setTimeout(() => {
   //       const matchedNodeIds = Array.from(matchedNodes);
@@ -1129,7 +1225,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   //         maxScale: 1.5
   //       });
   //     }, 300);
-  //   } else if (showOverlaps && !selectedIntent && nodePositions) {
+  //   } else if (showOverlaps && !selectedQuery && nodePositions) {
   //     // Auto-focus on overlapping nodes
   //     setTimeout(() => {
   //       const overlappingNodes = showRationalized ? SHARED_NODES : DUPLICATE_NODES;
@@ -1142,7 +1238,36 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   //       }
   //     }, 300);
   //   }
-  // }, [selectedIntent, matchedNodes, showOverlaps, showRationalized, nodePositions, autoFocus, SHARED_NODES, DUPLICATE_NODES]);
+  // }, [selectedQuery, matchedNodes, showOverlaps, showRationalized, nodePositions, autoFocus, SHARED_NODES, DUPLICATE_NODES]);
+
+  // Search handlers
+  const handleSearchResults = useCallback((results: SearchResult[]) => {
+    setSearchResults(results);
+    
+    // Highlight all search results
+    const highlightedIds = new Set(results.map(r => r.nodeId));
+    setSearchHighlightedNodes(highlightedIds);
+  }, []);
+
+  const handleNodeSelectFromSearch = useCallback((nodeId: string) => {
+    // Expand the node and its ancestors
+    const ancestors = graphOps.getAncestors(nodeId);
+    const newExpanded = new Set(expandedNodes);
+    ancestors.forEach((id: string) => newExpanded.add(id));
+    newExpanded.add(nodeId);
+    setExpandedNodes(newExpanded);
+    setSearchExpandedNodes(newExpanded);
+    
+    // Focus on the node
+    if (nodePositions[nodeId]) {
+      autoFocus([nodeId], {
+        padding: 150,
+        minScale: 0.8,
+        maxScale: 1.5,
+        duration: 500
+      });
+    }
+  }, [expandedNodes, nodePositions, graphOps, autoFocus]);
 
   return (
     <div style={{
@@ -1153,6 +1278,113 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       position: 'relative',
       overflow: 'hidden'
     }}>
+      {/* Search button at top left */}
+      <button
+        onClick={() => {
+          setShowSearch(!showSearch);
+          // Clear search when closing
+          if (showSearch) {
+            setSearchResults([]);
+            setSearchHighlightedNodes(new Set());
+            setSearchExpandedNodes(new Set());
+          }
+        }}
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          border: showSearch ? '2px solid #3498db' : '1px solid #ddd',
+          background: showSearch ? '#3498db' : 'white',
+          color: showSearch ? 'white' : '#7f8c8d',
+          cursor: 'pointer',
+          fontSize: 18,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: showSearch ? '0 4px 12px rgba(52,152,219,0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
+          transition: 'all 0.3s ease',
+          zIndex: 10
+        }}
+        title={showSearch ? 'Close search' : 'Search nodes'}
+      >
+        🔍
+      </button>
+
+      {/* Search Panel */}
+      {showSearch && (
+        <div style={{
+          position: 'absolute',
+          top: 70,
+          left: 20,
+          width: 350,
+          maxHeight: '60vh',
+          overflowY: 'auto',
+          background: 'white',
+          borderRadius: 12,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          padding: 20,
+          zIndex: 100,
+          border: '1px solid rgba(0,0,0,0.08)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 15
+          }}>
+            <h3 style={{ margin: 0, fontSize: 14, color: '#2c3e50' }}>
+              Search Nodes
+            </h3>
+            <button
+              onClick={() => {
+                setShowSearch(false);
+                setSearchResults([]);
+                setSearchHighlightedNodes(new Set());
+                setSearchExpandedNodes(new Set());
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: 18,
+                cursor: 'pointer',
+                color: '#7f8c8d',
+                padding: 0,
+                width: 20,
+                height: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+          
+          <NodeSearch
+            nodes={FUNCTIONAL_NODES}
+            onSearchResults={handleSearchResults}
+            onNodeSelect={handleNodeSelectFromSearch}
+          />
+          
+          {/* Search Results Summary */}
+          {searchResults.length > 0 && (
+            <div style={{
+              marginTop: 10,
+              padding: 8,
+              background: '#f0f9ff',
+              borderRadius: 6,
+              fontSize: 12,
+              color: '#0369a1'
+            }}>
+              <strong>{searchResults.length}</strong> node{searchResults.length !== 1 ? 's' : ''} found
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Instructions */}
       <div style={{
@@ -1161,18 +1393,16 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         left: '50%',
         transform: 'translateX(-50%)',
         padding: '4px 12px',
-        background: focusMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(102, 126, 234, 0.1)',
+        background: 'rgba(102, 126, 234, 0.1)',
         borderRadius: 20,
         fontSize: 11,
-        color: focusMode ? '#3B82F6' : '#667eea',
+        color: '#667eea',
         fontWeight: 'bold',
         zIndex: 10
       }}>
-        {focusMode ? 
-          `🎯 Auto-Focus Mode: View automatically adjusts when you expand/collapse nodes` :
-          selectedIntent ? 
-            `Showing matched path • ${expandedNodes.size} nodes expanded • Zoom: ${Math.round(transform.k * 100)}%` :
-            `Click nodes to expand/collapse • ${expandedNodes.size} nodes expanded • ${expansionMode === 'single' ? 'Single' : 'Multiple'} mode • Zoom: ${Math.round(transform.k * 100)}%`
+        {selectedQuery ? 
+          `Showing matched path • ${expandedNodes.size} nodes expanded • Zoom: ${Math.round(transform.k * 100)}%` :
+          `Click nodes to expand/collapse • ${expandedNodes.size} nodes expanded • ${expansionMode === 'single' ? 'Single' : 'Multiple'} mode • Zoom: ${Math.round(transform.k * 100)}%`
         }
       </div>
 
@@ -1214,7 +1444,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
             border: '1px solid #ddd',
             background: 'white',
             cursor: 'pointer',
-            fontSize: 12,
+            fontSize: 24,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1242,34 +1472,6 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           title="Zoom Out (Scroll Down)"
         >
           −
-        </button>
-        <div style={{ 
-          borderTop: '1px solid #ddd', 
-          margin: '4px 6px',
-          opacity: 0.5
-        }} />
-        <button
-          onClick={() => {
-            setFocusMode(!focusMode);
-          }}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            border: focusMode ? '2px solid #3B82F6' : '1px solid #ddd',
-            background: focusMode ? '#3B82F6' : 'white',
-            color: focusMode ? 'white' : '#333',
-            cursor: 'pointer',
-            fontSize: 16,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: focusMode ? '0 4px 8px rgba(59,130,246,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
-            transition: 'all 0.2s ease'
-          }}
-          title={focusMode ? "Exit Auto-Focus Mode" : "Auto-Focus Mode - Automatically adjusts view when expanding/collapsing"}
-        >
-          🎯
         </button>
       </div>
 
@@ -1384,6 +1586,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           <g>{Object.keys(nodePositions).map((nodeId: string) => renderNode(nodeId))}</g>
         </g>
       </svg>
+
 
     </div>
   );

@@ -9,42 +9,42 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'SAP ERP',
     level: 'product',
     parents: [],
-    children: ['outcome-financial-control-sap', 'outcome-supply-chain-sap']
+    children: ['outcome-financial-control-sap', 'outcome-supply-chain-sap', 'workflow-employee-onboarding', 'workflow-business-intelligence']
   },
   'product-salesforce': {
     id: 'product-salesforce',
     label: 'Salesforce CRM',
     level: 'product',
     parents: [],
-    children: ['outcome-sales-growth-salesforce', 'outcome-customer-service-salesforce']
+    children: ['outcome-sales-growth-salesforce', 'outcome-customer-service-salesforce', 'workflow-business-intelligence']
   },
   'product-ms365': {
     id: 'product-ms365',
     label: 'Microsoft 365',
     level: 'product',
     parents: [],
-    children: ['outcome-collaboration-ms365', 'outcome-automation-ms365']
+    children: ['outcome-collaboration-ms365', 'outcome-automation-ms365', 'workflow-employee-onboarding', 'workflow-project-delivery']
   },
   'product-analytics': {
     id: 'product-analytics',
     label: 'Analytics Platform',
     level: 'product',
     parents: [],
-    children: ['outcome-business-intelligence-analytics', 'outcome-realtime-insights-analytics']
+    children: ['outcome-business-intelligence-analytics', 'outcome-realtime-insights-analytics', 'workflow-business-intelligence']
   },
   'product-projects': {
     id: 'product-projects',
     label: 'Project Hub',
     level: 'product',
     parents: [],
-    children: ['outcome-project-delivery-projects', 'outcome-resource-optimization-projects']
+    children: ['outcome-project-delivery-projects', 'outcome-resource-optimization-projects', 'workflow-employee-onboarding', 'workflow-project-delivery']
   },
   'product-fieldops': {
     id: 'product-fieldops',
     label: 'Field Operations',
     level: 'product',
     parents: [],
-    children: ['outcome-field-service-fieldops', 'outcome-mobile-workforce-fieldops']
+    children: ['outcome-field-service-fieldops', 'outcome-mobile-workforce-fieldops', 'workflow-project-delivery']
   },
 
   // Outcome Level - Product-specific outcomes (no sharing)
@@ -55,7 +55,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['sap'],
     parents: ['product-sap'],
-    children: ['scenario-financial-reporting-sap', 'scenario-financial-reporting-shared', 'scenario-budgeting', 'scenario-compliance']
+    children: ['scenario-financial-reporting-sap', 'scenario-budgeting', 'scenario-compliance']
   },
   'outcome-supply-chain-sap': {
     id: 'outcome-supply-chain-sap',
@@ -63,7 +63,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['sap'],
     parents: ['product-sap'],
-    children: ['scenario-inventory-management', 'scenario-order-processing-sap', 'scenario-order-processing-shared', 'scenario-procurement']
+    children: ['scenario-inventory-management', 'scenario-order-processing-sap', 'scenario-procurement']
   },
 
   // Salesforce outcomes
@@ -73,7 +73,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['salesforce'],
     parents: ['product-salesforce'],
-    children: ['scenario-lead-management', 'scenario-opportunity-tracking', 'scenario-customer-360-salesforce', 'scenario-customer-360-shared']
+    children: ['scenario-lead-management', 'scenario-opportunity-tracking', 'scenario-customer-360-salesforce']
   },
   'outcome-customer-service-salesforce': {
     id: 'outcome-customer-service-salesforce',
@@ -81,7 +81,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['salesforce'],
     parents: ['product-salesforce'],
-    children: ['scenario-case-management', 'scenario-order-processing-salesforce', 'scenario-order-processing-shared', 'scenario-knowledge-base']
+    children: ['scenario-case-management', 'scenario-order-processing-salesforce', 'scenario-knowledge-base']
   },
 
   // MS365 outcomes
@@ -90,8 +90,8 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Team Collaboration',
     level: 'outcome',
     products: ['ms365'],
-    parents: ['product-ms365'],
-    children: ['scenario-team-communication', 'scenario-document-management-ms365', 'scenario-document-management-shared']
+    parents: ['product-ms365', 'workflow-project-delivery'],
+    children: ['scenario-team-communication', 'scenario-document-management-ms365']
   },
   'outcome-automation-ms365': {
     id: 'outcome-automation-ms365',
@@ -99,7 +99,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['ms365'],
     parents: ['product-ms365'],
-    children: ['scenario-workflow-automation', 'scenario-employee-management-ms365', 'scenario-employee-management-shared']
+    children: ['scenario-workflow-automation', 'scenario-employee-management-ms365']
   },
 
   // Analytics outcomes
@@ -109,7 +109,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['analytics'],
     parents: ['product-analytics'],
-    children: ['scenario-financial-reporting-analytics', 'scenario-financial-reporting-shared', 'scenario-customer-360-analytics', 'scenario-customer-360-shared']
+    children: ['scenario-financial-reporting-analytics', 'scenario-customer-360-analytics']
   },
   'outcome-realtime-insights-analytics': {
     id: 'outcome-realtime-insights-analytics',
@@ -127,7 +127,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['projects'],
     parents: ['product-projects'],
-    children: ['scenario-project-planning', 'scenario-document-management-projects', 'scenario-document-management-shared', 'scenario-milestone-tracking']
+    children: ['scenario-project-planning', 'scenario-document-management-projects', 'scenario-milestone-tracking']
   },
   'outcome-resource-optimization-projects': {
     id: 'outcome-resource-optimization-projects',
@@ -135,7 +135,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['projects'],
     parents: ['product-projects'],
-    children: ['scenario-resource-allocation', 'scenario-employee-management-projects', 'scenario-employee-management-shared', 'scenario-capacity-planning']
+    children: ['scenario-resource-allocation', 'scenario-employee-management-projects', 'scenario-capacity-planning']
   },
 
   // Field Ops outcomes
@@ -153,7 +153,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['fieldops'],
     parents: ['product-fieldops'],
-    children: ['scenario-mobile-timesheet', 'scenario-employee-management-fieldops', 'scenario-employee-management-shared', 'scenario-offline-sync']
+    children: ['scenario-mobile-timesheet', 'scenario-employee-management-fieldops', 'scenario-offline-sync']
   },
 
   // DUPLICATE SCENARIOS - These show the overlap problems
@@ -256,46 +256,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
 
   // SHARED SCENARIOS - Created through rationalization
-  'scenario-financial-reporting-shared': {
-    id: 'scenario-financial-reporting-shared',
-    label: 'Unified Financial Reporting',
-    level: 'scenario',
-    products: ['sap', 'analytics'],
-    parents: ['outcome-financial-control-sap', 'outcome-business-intelligence-analytics'],
-    children: ['step-financial-reporting-unified']
-  },
-  'scenario-customer-360-shared': {
-    id: 'scenario-customer-360-shared',
-    label: 'Customer 360 View',
-    level: 'scenario',
-    products: ['salesforce', 'analytics'],
-    parents: ['outcome-sales-growth-salesforce', 'outcome-business-intelligence-analytics'],
-    children: ['step-customer-360-unified']
-  },
-  'scenario-order-processing-shared': {
-    id: 'scenario-order-processing-shared',
-    label: 'End-to-End Order Processing',
-    level: 'scenario',
-    products: ['salesforce', 'sap'],
-    parents: ['outcome-customer-service-salesforce', 'outcome-supply-chain-sap'],
-    children: ['step-order-processing-unified']
-  },
-  'scenario-document-management-shared': {
-    id: 'scenario-document-management-shared',
-    label: 'Unified Document Management',
-    level: 'scenario',
-    products: ['ms365', 'projects'],
-    parents: ['outcome-collaboration-ms365', 'outcome-project-delivery-projects'],
-    children: ['step-document-management-unified']
-  },
-  'scenario-employee-management-shared': {
-    id: 'scenario-employee-management-shared',
-    label: 'Unified Employee Management',
-    level: 'scenario',
-    products: ['ms365', 'projects', 'fieldops'],
-    parents: ['outcome-automation-ms365', 'outcome-resource-optimization-projects', 'outcome-mobile-workforce-fieldops'],
-    children: ['step-employee-management-unified']
-  },
 
   // Unique scenarios (no overlap)
   'scenario-budgeting': {
@@ -439,46 +399,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
 
   // Unified steps for rationalization
-  'step-financial-reporting-unified': {
-    id: 'step-financial-reporting-unified',
-    label: 'Unified Financial Reporting',
-    level: 'step',
-    products: ['sap', 'analytics'],
-    parents: ['scenario-financial-reporting-shared'],
-    children: ['action-financial-reporting-execute', 'action-financial-reporting-validate']
-  },
-  'step-customer-360-unified': {
-    id: 'step-customer-360-unified',
-    label: 'Complete Customer View',
-    level: 'step',
-    products: ['salesforce', 'analytics'],
-    parents: ['scenario-customer-360-shared'],
-    children: ['action-customer-360-execute', 'action-customer-360-sync']
-  },
-  'step-order-processing-unified': {
-    id: 'step-order-processing-unified',
-    label: 'Integrated Order Processing',
-    level: 'step',
-    products: ['salesforce', 'sap'],
-    parents: ['scenario-order-processing-shared'],
-    children: ['action-order-processing-execute', 'action-order-processing-fulfill']
-  },
-  'step-document-management-unified': {
-    id: 'step-document-management-unified',
-    label: 'Centralized Document Management',
-    level: 'step',
-    products: ['ms365', 'projects'],
-    parents: ['scenario-document-management-shared'],
-    children: ['action-document-management-store', 'action-document-management-share']
-  },
-  'step-employee-management-unified': {
-    id: 'step-employee-management-unified',
-    label: 'Integrated Employee Management',
-    level: 'step',
-    products: ['ms365', 'projects', 'fieldops'],
-    parents: ['scenario-employee-management-shared'],
-    children: ['action-employee-management-assign', 'action-employee-management-track']
-  },
 
   // Other necessary steps (simplified list)
   'step-create-budget': {
@@ -1092,86 +1012,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   // === GENERATED ACTIONS ===
 
   // Unified step actions
-  'action-financial-reporting-execute': {
-    id: 'action-financial-reporting-execute',
-    label: 'Execute Unified Reporting',
-    level: 'action',
-    products: ['sap', 'analytics'],
-    parents: ['step-financial-reporting-unified'],
-    children: []
-  },
-  'action-financial-reporting-validate': {
-    id: 'action-financial-reporting-validate',
-    label: 'Validate Reports',
-    level: 'action',
-    products: ['sap', 'analytics'],
-    parents: ['step-financial-reporting-unified'],
-    children: []
-  },
-  'action-customer-360-execute': {
-    id: 'action-customer-360-execute',
-    label: 'Build Customer View',
-    level: 'action',
-    products: ['salesforce', 'analytics'],
-    parents: ['step-customer-360-unified'],
-    children: []
-  },
-  'action-customer-360-sync': {
-    id: 'action-customer-360-sync',
-    label: 'Sync Customer Data',
-    level: 'action',
-    products: ['salesforce', 'analytics'],
-    parents: ['step-customer-360-unified'],
-    children: []
-  },
-  'action-order-processing-execute': {
-    id: 'action-order-processing-execute',
-    label: 'Process Order',
-    level: 'action',
-    products: ['salesforce', 'sap'],
-    parents: ['step-order-processing-unified'],
-    children: []
-  },
-  'action-order-processing-fulfill': {
-    id: 'action-order-processing-fulfill',
-    label: 'Fulfill Order',
-    level: 'action',
-    products: ['salesforce', 'sap'],
-    parents: ['step-order-processing-unified'],
-    children: []
-  },
-  'action-document-management-store': {
-    id: 'action-document-management-store',
-    label: 'Store Document',
-    level: 'action',
-    products: ['ms365', 'projects'],
-    parents: ['step-document-management-unified'],
-    children: []
-  },
-  'action-document-management-share': {
-    id: 'action-document-management-share',
-    label: 'Share Document',
-    level: 'action',
-    products: ['ms365', 'projects'],
-    parents: ['step-document-management-unified'],
-    children: []
-  },
-  'action-employee-management-assign': {
-    id: 'action-employee-management-assign',
-    label: 'Assign Employee',
-    level: 'action',
-    products: ['ms365', 'projects', 'fieldops'],
-    parents: ['step-employee-management-unified'],
-    children: []
-  },
-  'action-employee-management-track': {
-    id: 'action-employee-management-track',
-    label: 'Track Employee',
-    level: 'action',
-    products: ['ms365', 'projects', 'fieldops'],
-    parents: ['step-employee-management-unified'],
-    children: []
-  },
   
   // SAP Budget actions
   'action-create-budget-define': {
@@ -2111,4 +1951,31 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     children: []
   }
 
+,
+
+  // WORKFLOW LEVEL - Cross-product orchestration
+  'workflow-employee-onboarding': {
+    id: 'workflow-employee-onboarding',
+    label: 'Employee Onboarding Orchestration',
+    level: 'workflow',
+    children: ['outcome-employee-management-ms365', 'outcome-employee-management-projects', 'outcome-financial-reporting-sap'],
+    parents: [],
+    description: 'Complete employee onboarding across HR, IT, and collaboration tools'
+  },
+  'workflow-project-delivery': {
+    id: 'workflow-project-delivery',
+    label: 'Project Delivery Coordination',
+    level: 'workflow',
+    children: ['outcome-project-management-projects', 'outcome-field-operations-fieldops', 'outcome-collaboration-ms365'],
+    parents: [],
+    description: 'Orchestrate project delivery from planning through execution'
+  },
+  'workflow-business-intelligence': {
+    id: 'workflow-business-intelligence',
+    label: 'Business Intelligence Pipeline',
+    level: 'workflow',
+    children: ['outcome-financial-reporting-sap', 'outcome-business-analytics', 'outcome-customer-360-salesforce'],
+    parents: [],
+    description: 'Coordinate data flow from operations through analytics to reporting'
+  },
 };

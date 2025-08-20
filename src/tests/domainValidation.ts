@@ -1,7 +1,7 @@
 // Domain configuration validation tests
 // These tests ensure that domain configurations are consistent and well-formed
 
-import { FunctionalNode, UserIntent } from '../types';
+import { FunctionalNode, UserQuery } from '../types';
 
 interface ValidationResult {
   domain: string;
@@ -18,7 +18,7 @@ export class DomainValidator {
   validateDomain(
     domainName: string,
     FUNCTIONAL_NODES: Record<string, FunctionalNode>,
-    USER_INTENTS: UserIntent[],
+    USER_QUERIES: UserQuery[],
     RATIONALIZED_NODE_ALTERNATIVES?: Record<string, Record<string, string>>
   ): ValidationResult[] {
     const domainResults: ValidationResult[] = [];
@@ -32,8 +32,8 @@ export class DomainValidator {
     // Test 3: Check for duplicate labels and proper rationalization
     domainResults.push(this.checkDuplicateLabels(domainName, FUNCTIONAL_NODES));
     
-    // Test 4: Check that all intents reference valid nodes
-    domainResults.push(this.checkIntentReferences(domainName, FUNCTIONAL_NODES, USER_INTENTS));
+    // Test 4: Check that all querys reference valid nodes
+    domainResults.push(this.checkQueryReferences(domainName, FUNCTIONAL_NODES, USER_QUERIES));
     
     // Test 5: Check that non-shared steps have action children
     domainResults.push(this.checkStepActions(domainName, FUNCTIONAL_NODES));
@@ -47,7 +47,10 @@ export class DomainValidator {
     // Test 8: Check product consistency
     domainResults.push(this.checkProductConsistency(domainName, FUNCTIONAL_NODES));
     
-    // Test 9: Check rationalization mapping if provided
+    // Test 9: Check product tree independence (allows workflow nodes and shared nodes)
+    domainResults.push(this.checkProductTreeIndependence(domainName, FUNCTIONAL_NODES));
+    
+    // Test 10: Check rationalization mapping if provided
     if (RATIONALIZED_NODE_ALTERNATIVES) {
       domainResults.push(this.checkRationalizationMapping(domainName, FUNCTIONAL_NODES, RATIONALIZED_NODE_ALTERNATIVES));
     }
@@ -193,25 +196,25 @@ export class DomainValidator {
     };
   }
   
-  // Check that all intents reference valid nodes
-  private checkIntentReferences(domain: string, nodes: Record<string, FunctionalNode>, intents: UserIntent[]): ValidationResult {
+  // Check that all querys reference valid nodes
+  private checkQueryReferences(domain: string, nodes: Record<string, FunctionalNode>, querys: UserQuery[]): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
     
-    intents.forEach(intent => {
-      if (!nodes[intent.entryNode]) {
-        errors.push(`Intent "${intent.text}" references non-existent node: ${intent.entryNode}`);
+    querys.forEach(query => {
+      if (!nodes[query.entryNode]) {
+        errors.push(`Query "${query.text}" references non-existent node: ${query.entryNode}`);
       } else {
-        const node = nodes[intent.entryNode];
-        if (node.level !== intent.entryLevel) {
-          warnings.push(`Intent "${intent.text}" declares level as ${intent.entryLevel} but node ${intent.entryNode} is actually ${node.level}`);
+        const node = nodes[query.entryNode];
+        if (node.level !== query.entryLevel) {
+          warnings.push(`Query "${query.text}" declares level as ${query.entryLevel} but node ${query.entryNode} is actually ${node.level}`);
         }
       }
     });
     
     return {
       domain,
-      test: 'Intent References Check',
+      test: 'Query References Check',
       passed: errors.length === 0,
       errors,
       warnings
@@ -361,6 +364,118 @@ export class DomainValidator {
     return {
       domain,
       test: 'Product Consistency Check',
+      passed: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+  
+  // Check product tree independence - products should NOT share nodes except through -shared rationalized nodes or workflow nodes
+  private checkProductTreeIndependence(domain: string, nodes: Record<string, FunctionalNode>): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    // Build a map of which products can reach which nodes
+    const productReachability: Record<string, Set<string>> = {};
+    
+    // Helper function to traverse from a product node
+    const traverseFromProduct = (productId: string, visited: Set<string> = new Set()): Set<string> => {
+      if (visited.has(productId)) return visited;
+      visited.add(productId);
+      
+      const node = nodes[productId];
+      if (!node) return visited;
+      
+      node.children.forEach(childId => {
+        traverseFromProduct(childId, visited);
+      });
+      
+      return visited;
+    };
+    
+    // Build reachability for each product
+    Object.entries(nodes).forEach(([nodeId, node]) => {
+      if (node.level === 'product') {
+        const productName = nodeId.replace('product-', '');
+        productReachability[productName] = traverseFromProduct(nodeId);
+      }
+    });
+    
+    // Check for improper sharing
+    const productNames = Object.keys(productReachability);
+    const sharedNodes: Record<string, string[]> = {};
+    
+    // Find nodes that are reachable from multiple products
+    Object.entries(nodes).forEach(([nodeId, node]) => {
+      if (node.level === 'product') return; // Skip product nodes themselves
+      
+      const reachableFrom: string[] = [];
+      productNames.forEach(productName => {
+        if (productReachability[productName].has(nodeId)) {
+          reachableFrom.push(productName);
+        }
+      });
+      
+      if (reachableFrom.length > 1) {
+        sharedNodes[nodeId] = reachableFrom;
+      }
+    });
+    
+    // Analyze nodes that are reachable from multiple products
+    Object.entries(sharedNodes).forEach(([nodeId, products]) => {
+      const node = nodes[nodeId];
+      
+      // Check if this is a workflow node - workflow nodes are designed to connect multiple products
+      if (node.level === 'workflow') {
+        // Workflow nodes are ALLOWED to connect multiple product trees
+        // They enable cross-product workflows and orchestration
+        // Just verify the products array properly reflects all connected products
+        if (!node.products || !arraysEqual(node.products.sort(), products.sort())) {
+          warnings.push(`Workflow node ${nodeId} products array [${node.products?.join(', ')}] doesn't match actual usage by products [${products.join(', ')}]`);
+        }
+      } else if (nodeId.includes('-shared') || nodeId.includes('-unified')) {
+        // This IS a shared node - they ARE ALLOWED to connect multiple product trees
+        // That's the whole point of rationalization - to unify duplicate functionality
+        
+        // Just verify the products array properly reflects all connected products
+        if (!node.products || !arraysEqual(node.products.sort(), products.sort())) {
+          warnings.push(`Shared node ${nodeId} products array [${node.products?.join(', ')}] doesn't match actual usage by products [${products.join(', ')}]`);
+        }
+      } else {
+        // This is an error - non-shared, non-workflow nodes shouldn't be reachable from multiple products
+        // They must be explicitly marked as shared or be workflow nodes to connect multiple product trees
+        errors.push(`Node "${node.label}" (${nodeId}) is improperly shared between products [${products.join(', ')}]. This node connects multiple product trees but is NOT marked as shared or a workflow node. Either: 1) Add '-shared' suffix to make it a proper rationalized node, OR 2) Create separate nodes for each product (e.g., ${nodeId}-${products[0]}, ${nodeId}-${products[1]}) to maintain product independence.`);
+      }
+    });
+    
+    // Also check nodes marked as -shared that are NOT actually shared
+    Object.entries(nodes).forEach(([nodeId, node]) => {
+      if (nodeId.includes('-shared') || nodeId.includes('-unified')) {
+        // This node claims to be shared - verify it actually is
+        if (!sharedNodes[nodeId]) {
+          // Check if it's reachable from ANY product
+          const reachableFrom = productNames.filter(p => productReachability[p].has(nodeId));
+          if (reachableFrom.length === 0) {
+            warnings.push(`Node ${nodeId} is marked as shared but is not reachable from any product. It may be orphaned.`);
+          } else if (reachableFrom.length === 1) {
+            warnings.push(`Node ${nodeId} is marked as shared but is only used by product [${reachableFrom[0]}]. Consider renaming without '-shared' suffix.`);
+          }
+        }
+      }
+    });
+    
+    // Helper function to compare arrays
+    function arraysEqual(a: string[], b: string[]): boolean {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    }
+    
+    return {
+      domain,
+      test: 'Product Tree Independence Check',
       passed: errors.length === 0,
       errors,
       warnings
@@ -525,7 +640,7 @@ export class DomainValidator {
   }
   
   // Gather statistics about a domain
-  gatherStatistics(domain: string, nodes: Record<string, any>, intents: any[]): {
+  gatherStatistics(domain: string, nodes: Record<string, any>, querys: any[]): {
     totalNodes: number;
     nodesByLevel: Record<string, number>;
     uniqueNodes: number;
@@ -534,8 +649,8 @@ export class DomainValidator {
     duplicateLabels: number;
     products: string[];
     productDistribution: Record<string, number>;
-    totalIntents: number;
-    intentsByLevel: Record<string, number>;
+    totalQuerys: number;
+    querysByLevel: Record<string, number>;
     graphDepth: number;
     avgChildrenPerLevel: Record<string, number>;
   } {
@@ -601,8 +716,8 @@ export class DomainValidator {
     const duplicatesCount = Object.entries(labelCounts)
       .filter(([_, count]) => count > 1).length;
     
-    // Intent statistics
-    const intentsByLevel: Record<string, number> = {
+    // Query statistics
+    const querysByLevel: Record<string, number> = {
       product: 0,
       outcome: 0,
       scenario: 0,
@@ -610,9 +725,9 @@ export class DomainValidator {
       action: 0
     };
     
-    intents.forEach((intent: any) => {
-      if (intentsByLevel[intent.entryLevel] !== undefined) {
-        intentsByLevel[intent.entryLevel]++;
+    querys.forEach((query: any) => {
+      if (querysByLevel[query.entryLevel] !== undefined) {
+        querysByLevel[query.entryLevel]++;
       }
     });
     
@@ -671,15 +786,15 @@ export class DomainValidator {
       duplicateLabels: duplicatesCount,
       products: Array.from(products),
       productDistribution,
-      totalIntents: intents.length,
-      intentsByLevel,
+      totalQuerys: querys.length,
+      querysByLevel,
       graphDepth: maxDepth,
       avgChildrenPerLevel: avgChildren
     };
   }
 
   // Generate validation report with statistics
-  generateReport(results: ValidationResult[], domainData?: Record<string, { nodes: Record<string, FunctionalNode>, intents: UserIntent[] }>): string {
+  generateReport(results: ValidationResult[], domainData?: Record<string, { nodes: Record<string, FunctionalNode>, querys: UserQuery[] }>): string {
     let report = '\n' + '='.repeat(80) + '\n';
     report += 'DOMAIN CONFIGURATION VALIDATION REPORT\n';
     report += '='.repeat(80) + '\n\n';
@@ -709,8 +824,8 @@ export class DomainValidator {
       
       // Add statistics if domain data is provided
       if (domainData && domainData[domain]) {
-        const { nodes, intents } = domainData[domain];
-        const stats = this.gatherStatistics(domain, nodes, intents);
+        const { nodes, querys } = domainData[domain];
+        const stats = this.gatherStatistics(domain, nodes, querys);
         console.log(`Statistics for ${domain}:`, stats); // Debug log
         
         report += '📊 DOMAIN STATISTICS:\n';
@@ -745,8 +860,8 @@ export class DomainValidator {
           report += '\n';
         }
         
-        report += `  User Intents: ${stats.totalIntents} total\n`;
-        Object.entries(stats.intentsByLevel).forEach(([level, count]) => {
+        report += `  User Queries: ${stats.totalQuerys} total\n`;
+        Object.entries(stats.querysByLevel).forEach(([level, count]) => {
           if ((count as number) > 0) {
             report += `    ${level} level: ${count}\n`;
           }

@@ -89,7 +89,7 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
         </p>
         <p style={{ fontSize: 16, opacity: 0.9, maxWidth: 850, margin: '0 auto 15px' }}>
           The Breeze.AI Semantic Engineering methodology provides a structured approach to building 
-          domain-specific AI agents that understand complex business intents and orchestrate actions 
+          domain-specific AI agents that understand complex business querys and orchestrate actions 
           across multiple software products—with proven patterns for disambiguation.
         </p>
         <p style={{ fontSize: 15, opacity: 0.85, maxWidth: 800, margin: '0 auto', fontStyle: 'italic' }}>
@@ -116,7 +116,7 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
           <FeatureItem
             number="1"
             title="Autonomous Feature Invocation"
-            description="AI agents independently navigate and execute features across your software portfolio based on natural language intents"
+            description="AI agents independently navigate and execute features across your software portfolio based on natural language querys"
           />
           <FeatureItem
             number="2"
@@ -189,7 +189,7 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
             </h3>
             <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
               Agents operate within defined boundaries using functional graphs, ensuring 
-              predictable behavior while maintaining the flexibility to handle complex intents.
+              predictable behavior while maintaining the flexibility to handle complex querys.
             </p>
           </div>
         </div>
@@ -228,19 +228,19 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
                 Persona Bar (Current Persona, Product Usage, Recent Actions)
               </text>
               
-              {/* Intent Panel */}
+              {/* Query Panel */}
               <rect x="10" y="80" width="250" height="270" fill="#fff3e0" stroke="#ff9800" strokeWidth="2" rx="4" />
               <text x="135" y="105" textAnchor="middle" fill="#e65100" fontSize="14" fontWeight="bold">
-                Intent Panel
+                Query Panel
               </text>
               <text x="135" y="125" textAnchor="middle" fill="#666" fontSize="11">
                 • Predefined Examples
               </text>
               <text x="135" y="145" textAnchor="middle" fill="#666" fontSize="11">
-                • Type Custom Intent
+                • Type Custom Query
               </text>
               <text x="135" y="165" textAnchor="middle" fill="#666" fontSize="11">
-                • Recent Intents History
+                • Recent Querys History
               </text>
               
               {/* Graph Visualization */}
@@ -333,8 +333,8 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
         />
         
         <ComponentDescription
-          title="Intent Panel (Left)"
-          description="Contains predefined intent examples and a text input for custom intents. Shows recent intent history with success/failure indicators. Failed intents appear here but don't influence context."
+          title="Query Panel (Left)"
+          description="Contains predefined query examples and a text input for custom querys. Shows recent query history with success/failure indicators. Failed querys appear here but don't influence context."
         />
         
         <ComponentDescription
@@ -361,7 +361,7 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
           title="Example 1: Basic Intent Resolution"
           steps={[
             "Select 'Marketing Manager' persona",
-            "Click on 'Monitor what people are saying about our brand' from the intent examples",
+            "Click on 'Monitor what people are saying about our brand' from the query examples",
             "Observe the graph visualization showing the resolution path",
             "Note the resolution panel shows matched nodes and confidence"
           ]}
@@ -371,7 +371,7 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
           title="Example 2: Demonstrating Overlapping Functions"
           steps={[
             "Turn ON 'Show Overlaps' toggle (orange button)",
-            "Select 'Monitor social media conversations' intent",
+            "Select 'Monitor social media conversations' query",
             "Notice orange dashed borders on duplicate nodes across products",
             "Turn OFF 'Rationalized' toggle - the resolution will fail",
             "Turn ON 'Rationalized' toggle - the resolution succeeds with unified node"
@@ -382,11 +382,11 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
           title="Example 3: Context-Based Resolution"
           steps={[
             "Ensure 'Context' toggle is OFF initially",
-            "Select several intents to build history (they get added to recent actions)",
+            "Select several querys to build history (they get added to recent actions)",
             "Type 'track coverage' in the text input",
             "Note which product it resolves to",
             "Turn ON 'Context' toggle",
-            "Type the same intent again - it may resolve to a different product based on your history"
+            "Type the same query again - it may resolve to a different product based on your history"
           ]}
         />
         
@@ -395,7 +395,7 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
           steps={[
             "Turn ON 'Rationalized' toggle first",
             "Turn ON 'Workflows' toggle",
-            "Select 'Coordinate multi-channel crisis response' intent",
+            "Select 'Coordinate multi-channel crisis response' query",
             "Observe the workflow node (pink) orchestrating across multiple products",
             "Check the resolution panel to see all products involved"
           ]}
@@ -471,14 +471,14 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
             <ProblemPoint text="Duplicate functionality across products causes confusion" />
             <ProblemPoint text="No awareness of user context or history" />
             <ProblemPoint text="Workflows require manual coordination across products" />
-            <ProblemPoint text="Ambiguous intents lead to failed resolutions" />
+            <ProblemPoint text="Ambiguous querys lead to failed resolutions" />
           </div>
           
           <div>
             <h3 style={{ color: '#10b981', fontSize: 16, marginBottom: 10 }}>
               With Semantic Engineering
             </h3>
-            <SolutionPoint text="Intents automatically map to the right capabilities" />
+            <SolutionPoint text="Querys automatically map to the right capabilities" />
             <SolutionPoint text="Duplicate functions are unified and rationalized" />
             <SolutionPoint text="Context-aware resolution based on usage patterns" />
             <SolutionPoint text="Automated cross-product workflow orchestration" />
@@ -498,11 +498,11 @@ const LandingPageSection: React.FC<LandingPageSectionProps> = ({ onDomainSelect 
           💡 Pro Tips
         </h3>
         <ul style={{ margin: 0, paddingLeft: 20, color: '#78350f', lineHeight: 1.8 }}>
-          <li>Try the same intent with different personas to see how context affects resolution</li>
+          <li>Try the same query with different personas to see how context affects resolution</li>
           <li>Toggle rationalization OFF to see the duplicate function problem</li>
-          <li>Type natural language intents - the system understands synonyms and variations</li>
-          <li>Watch how product usage percentages change as you resolve intents</li>
-          <li>Failed resolutions still appear in recent intents for learning purposes</li>
+          <li>Type natural language querys - the system understands synonyms and variations</li>
+          <li>Watch how product usage percentages change as you resolve querys</li>
+          <li>Failed resolutions still appear in recent querys for learning purposes</li>
           <li>Enable workflows to see cross-product orchestration capabilities</li>
         </ul>
       </div>

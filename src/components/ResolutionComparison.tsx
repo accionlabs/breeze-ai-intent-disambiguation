@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Resolution, FUNCTIONAL_NODES, UserContext, DISPLAY_LIMITS, getProductColor, FunctionalNode } from '../config';
 import { RecentAction } from '../utils/resolutionEngine';
-import { GeneratedIntent } from '../utils/intentMatcher';
+import { GeneratedQuery } from '../utils/queryMatcher';
 
 interface ResolutionComparisonProps {
   baseResolution?: Resolution;
   contextualResolution?: Resolution;
   userContext?: UserContext;
   showContext: boolean;
-  selectedIntentText?: string;
-  generatedIntent?: GeneratedIntent | null;
+  selectedQueryText?: string;
+  generatedQuery?: GeneratedQuery | null;
   recentActions?: RecentAction[];
-  onSelectedRecentIntentChange?: (action: RecentAction | null) => void;
-  onClearRecentIntents?: () => void;
+  onSelectedRecentQueryChange?: (action: RecentAction | null) => void;
+  onClearRecentQuerys?: () => void;
   graphStateVersion?: number;
   currentToggles?: {
     showRationalized: boolean;
@@ -26,62 +26,62 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
   contextualResolution,
   userContext,
   showContext,
-  selectedIntentText,
-  generatedIntent,
+  selectedQueryText,
+  generatedQuery,
   recentActions = [],
-  onSelectedRecentIntentChange,
-  onClearRecentIntents,
+  onSelectedRecentQueryChange,
+  onClearRecentQuerys,
   graphStateVersion = 0,
   currentToggles,
   nodes
 }) => {
-  const [selectedRecentIntent, setSelectedRecentIntent] = useState<string | null>(null);
+  const [selectedRecentQuery, setSelectedRecentQuery] = useState<string | null>(null);
   const [userDeselected, setUserDeselected] = useState(false);
-  const [lastFirstIntentId, setLastFirstIntentId] = useState<string | null>(null);
+  const [lastFirstQueryId, setLastFirstQueryId] = useState<string | null>(null);
   
-  // Auto-select the latest intent only when a NEW intent is added
+  // Auto-select the latest query only when a NEW query is added
   useEffect(() => {
-    // Check if the first intent in the list has changed (indicating a new intent was added)
-    const currentFirstIntentId = recentActions.length > 0 ? recentActions[0].id : null;
+    // Check if the first query in the list has changed (indicating a new query was added)
+    const currentFirstQueryId = recentActions.length > 0 ? recentActions[0].id : null;
     
-    if (currentFirstIntentId && currentFirstIntentId !== lastFirstIntentId) {
-      // A new intent was added at the top of the list
-      setSelectedRecentIntent(currentFirstIntentId);
+    if (currentFirstQueryId && currentFirstQueryId !== lastFirstQueryId) {
+      // A new query was added at the top of the list
+      setSelectedRecentQuery(currentFirstQueryId);
       setUserDeselected(false);
     }
     
-    setLastFirstIntentId(currentFirstIntentId);
+    setLastFirstQueryId(currentFirstQueryId);
   }, [recentActions]);
   
-  // Notify parent when selected recent intent changes
+  // Notify parent when selected recent query changes
   useEffect(() => {
-    if (onSelectedRecentIntentChange) {
-      const selected = selectedRecentIntent ? 
-        recentActions.find(a => a.id === selectedRecentIntent) || null : 
+    if (onSelectedRecentQueryChange) {
+      const selected = selectedRecentQuery ? 
+        recentActions.find(a => a.id === selectedRecentQuery) || null : 
         null;
-      onSelectedRecentIntentChange(selected);
+      onSelectedRecentQueryChange(selected);
     }
-  }, [selectedRecentIntent, recentActions, onSelectedRecentIntentChange]);
+  }, [selectedRecentQuery, recentActions, onSelectedRecentQueryChange]);
   
   // Clear selection when graph state changes (toggles change)
-  // But don't clear if we just selected a new intent
+  // But don't clear if we just selected a new query
   useEffect(() => {
-    // Only clear if the selected intent is not the most recent one
-    if (selectedRecentIntent && recentActions.length > 0 && selectedRecentIntent !== recentActions[0].id) {
-      setSelectedRecentIntent(null);
+    // Only clear if the selected query is not the most recent one
+    if (selectedRecentQuery && recentActions.length > 0 && selectedRecentQuery !== recentActions[0].id) {
+      setSelectedRecentQuery(null);
       setUserDeselected(true);
     }
   }, [graphStateVersion]);
   
-  // Clear selected recent intent when a new intent is selected from main list
+  // Clear selected recent query when a new query is selected from main list
   // (removed this as we now handle it in the above useEffect)
   
   // Get the selected recent action data
-  const selectedRecentAction = selectedRecentIntent
-    ? recentActions.find(action => action.id === selectedRecentIntent)
+  const selectedRecentAction = selectedRecentQuery
+    ? recentActions.find(action => action.id === selectedRecentQuery)
     : null;
   
-  // Determine what to show: current resolution or historical recent intent
+  // Determine what to show: current resolution or historical recent query
   // Only show current resolution if there's no selected recent action
   // If a recent action is selected (even the most recent one), use its stored resolution
   const showCurrentResolution = baseResolution && !selectedRecentAction;
@@ -98,7 +98,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
           fontSize: 12,
           fontStyle: 'italic'
         }}>
-          Select an intent to see resolution
+          Select a query to see intent resolution
         </div>
       );
     }
@@ -360,8 +360,8 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
         Intent Resolution
       </h3>
 
-      {/* Show selected intent or recent intent */}
-      {(selectedRecentAction || selectedIntentText) && (
+      {/* Show selected query or recent query */}
+      {(selectedRecentAction || selectedQueryText) && (
         <div style={{
           padding: '8px 12px',
           background: selectedRecentAction ? '#f0f7ff' : '#e8f5e9',
@@ -371,7 +371,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
           marginBottom: 15,
           fontWeight: 'bold'
         }}>
-          "{selectedRecentAction ? selectedRecentAction.intent : selectedIntentText}"
+          "{selectedRecentAction ? selectedRecentAction.query : selectedQueryText}"
           {selectedRecentAction && (
             <div style={{ 
               fontSize: 10, 
@@ -385,8 +385,8 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
         </div>
       )}
 
-      {/* Show match confidence and alternatives for generated intents */}
-      {generatedIntent && !selectedRecentAction && (
+      {/* Show match confidence and alternatives for generated queries */}
+      {generatedQuery && !selectedRecentAction && (
         <div style={{
           padding: '10px 12px',
           background: '#f8f9fa',
@@ -414,30 +414,30 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
           }}>
             <span style={{
               padding: '3px 8px',
-              background: generatedIntent.matchConfidence > 0.7 ? '#e8f5e9' :
-                         generatedIntent.matchConfidence > 0.4 ? '#fff3e0' :
+              background: generatedQuery.matchConfidence > 0.7 ? '#e8f5e9' :
+                         generatedQuery.matchConfidence > 0.4 ? '#fff3e0' :
                          '#ffebee',
-              color: generatedIntent.matchConfidence > 0.7 ? '#2e7d32' :
-                     generatedIntent.matchConfidence > 0.4 ? '#e65100' :
+              color: generatedQuery.matchConfidence > 0.7 ? '#2e7d32' :
+                     generatedQuery.matchConfidence > 0.4 ? '#e65100' :
                      '#c62828',
               borderRadius: 4,
               fontSize: 10,
               fontWeight: 'bold',
               border: `1px solid ${
-                generatedIntent.matchConfidence > 0.7 ? '#81c784' :
-                generatedIntent.matchConfidence > 0.4 ? '#ffb74d' :
+                generatedQuery.matchConfidence > 0.7 ? '#81c784' :
+                generatedQuery.matchConfidence > 0.4 ? '#ffb74d' :
                 '#ef5350'
               }`
             }}>
-              {Math.round(generatedIntent.matchConfidence * 100)}% confidence
+              {Math.round(generatedQuery.matchConfidence * 100)}% confidence
             </span>
             <span style={{ fontSize: 11, color: '#333' }}>
-              → {generatedIntent.matchedNodeLabel}
+              → {generatedQuery.matchedNodeLabel}
             </span>
           </div>
           
           {/* Alternative matches */}
-          {generatedIntent.alternativeMatches && generatedIntent.alternativeMatches.length > 0 && (
+          {generatedQuery.alternativeMatches && generatedQuery.alternativeMatches.length > 0 && (
             <div style={{
               marginTop: 8,
               paddingTop: 8,
@@ -451,7 +451,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
               }}>
                 Other considered matches:
               </div>
-              {generatedIntent.alternativeMatches.slice(0, DISPLAY_LIMITS.ALTERNATIVE_MATCHES_DISPLAY).map((alt, idx) => (
+              {generatedQuery.alternativeMatches.slice(0, DISPLAY_LIMITS.ALTERNATIVE_MATCHES_DISPLAY).map((alt: {nodeId: string; label: string; score: number}, idx: number) => (
                 <div key={idx} style={{ 
                   marginLeft: 10, 
                   fontSize: 10,
@@ -465,7 +465,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
           )}
           
           {/* Ambiguity indicator */}
-          {generatedIntent.isAmbiguous && (
+          {generatedQuery.isAmbiguous && (
             <div style={{
               marginTop: 8,
               padding: '4px 8px',
@@ -487,11 +487,11 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {showCurrentResolution ? (
           // Show current intent resolution
-          renderResolution(baseResolution, 'Intent Mapping', false)
+          renderResolution(baseResolution, 'Query Mapping', false)
         ) : selectedRecentAction ? (
-          // Show selected recent intent's resolution using stored resolution data
+          // Show selected recent query's resolution using stored resolution data
           selectedRecentAction.resolution ? (
-            renderResolution(selectedRecentAction.resolution, `Intent Mapping${selectedRecentAction.toggleStates ? ` (${selectedRecentAction.toggleStates.showRationalized ? 'Rationalized' : 'Not Rationalized'})` : ''}`, false)
+            renderResolution(selectedRecentAction.resolution, `Query Mapping${selectedRecentAction.toggleStates ? ` (${selectedRecentAction.toggleStates.showRationalized ? 'Rationalized' : 'Not Rationalized'})` : ''}`, false)
           ) : (
             // Fallback for old data without stored resolution
             <div style={{
@@ -506,10 +506,10 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
                 color: '#666',
                 fontWeight: 'bold'
               }}>
-                Intent Mapping
+                Query Mapping
               </h4>
               
-              {/* Resolved To section for recent intent */}
+              {/* Resolved To section for recent query */}
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 10, color: '#999', marginBottom: 4 }}>RESOLVED TO:</div>
                 <div style={{
@@ -574,13 +574,13 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
             fontSize: 12,
             fontStyle: 'italic'
           }}>
-            Select an intent to see how it maps to products and outcomes
+            Select an query to see how it maps to products and outcomes
           </div>
         )}
       </div>
 
       
-      {/* Recent Intents Section */}
+      {/* Recent Querys Section */}
       <div style={{
         marginTop: 20,
         padding: 15,
@@ -596,7 +596,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          <span>Recent Intents</span>
+          <span>Recent Querys</span>
           {recentActions.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ 
@@ -606,11 +606,11 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
               }}>
                 Last 5
               </span>
-              {onClearRecentIntents && (
+              {onClearRecentQuerys && (
                 <button
                   onClick={() => {
-                    setSelectedRecentIntent(null);
-                    onClearRecentIntents();
+                    setSelectedRecentQuery(null);
+                    onClearRecentQuerys();
                   }}
                   style={{
                     padding: '2px 6px',
@@ -625,7 +625,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = '#ff1744'}
                   onMouseLeave={(e) => e.currentTarget.style.background = '#ff5252'}
-                  title="Clear all recent intents"
+                  title="Clear all recent queries"
                 >
                   Clear
                 </button>
@@ -640,19 +640,19 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
             fontStyle: 'italic',
             padding: '8px 0'
           }}>
-            No recent intents. Select an intent to see how it resolves.
+            No recent queries. Select a query to see how it resolves.
           </div>
         ) : (
           <div style={{ 
             maxHeight: 200,
             overflowY: 'auto'
           }}>
-            {recentActions.slice(0, DISPLAY_LIMITS.RECENT_INTENTS_DISPLAY).map((action, index) => {
+            {recentActions.slice(0, DISPLAY_LIMITS.RECENT_QUERYS_DISPLAY).map((action, index) => {
               const timeAgo = Math.floor((Date.now() - action.timestamp.getTime()) / 1000);
               const timeStr = timeAgo < 60 ? `${timeAgo}s ago` : 
                              timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :
                              `${Math.floor(timeAgo / 3600)}h ago`;
-              const isSelected = selectedRecentIntent === action.id;
+              const isSelected = selectedRecentQuery === action.id;
               
               // Check if the action's toggle states match current graph state
               const isCompatible = !currentToggles || 
@@ -666,18 +666,18 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
                     // Only allow clicking if compatible with current state
                     if (!isCompatible) return;
                     
-                    if (action.id === selectedRecentIntent) {
+                    if (action.id === selectedRecentQuery) {
                       // User is deselecting
-                      setSelectedRecentIntent(null);
+                      setSelectedRecentQuery(null);
                       setUserDeselected(true);
                     } else {
-                      // User is selecting a different intent
-                      setSelectedRecentIntent(action.id);
+                      // User is selecting a different query
+                      setSelectedRecentQuery(action.id);
                       setUserDeselected(false);
                     }
                   }}
                   title={!isCompatible ? 
-                    `Cannot select: Graph state has changed. This intent was resolved with Rationalization ${action.toggleStates.showRationalized ? 'ON' : 'OFF'} and Workflows ${action.toggleStates.showWorkflows ? 'ON' : 'OFF'}` :
+                    `Cannot select: Graph state has changed. This query was resolved with Rationalization ${action.toggleStates.showRationalized ? 'ON' : 'OFF'} and Workflows ${action.toggleStates.showWorkflows ? 'ON' : 'OFF'}` :
                     (isSelected ? 'Click to deselect and clear visualization' : 'Click to view this resolution')
                   }
                   style={{
@@ -761,7 +761,7 @@ const ResolutionComparison: React.FC<ResolutionComparisonProps> = ({
                     fontWeight: isSelected ? 500 : 'normal',
                     fontStyle: action.success ? 'normal' : 'italic'
                   }}>
-                    "{action.intent}"
+                    "{action.query}"
                   </div>
                   <div style={{ 
                     display: 'flex', 

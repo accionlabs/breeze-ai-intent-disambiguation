@@ -1,4 +1,4 @@
-// Resolution engine for intent disambiguation
+// Resolution engine for query disambiguation
 // This file contains all the business logic for resolution calculation
 // Separated from React components for better testability
 
@@ -9,7 +9,7 @@ import { checkNodeDuplicateStatus } from './rationalizationProcessor';
 export interface RecentAction {
   id: string;
   persona: string;
-  intent: string;
+  query: string;
   product: string;
   outcome: string;
   matchedNode: string;
@@ -23,7 +23,7 @@ export interface RecentAction {
 }
 
 /**
- * Calculate resolution for a given intent node
+ * Calculate resolution for a given query node
  * This is the core resolution logic extracted from the React component
  */
 export function calculateResolution(
@@ -321,6 +321,17 @@ export function calculateResolution(
   // Determine traversal based on node type
   switch (nodeType) {
     case 'workflow':
+      // Check if workflows are enabled
+      if (!showWorkflows) {
+        return {
+          entryNode: entryNodeId,
+          traversalPath: { upward: [], downward: [] },
+          selectedActions: [],
+          productActivation: [],
+          confidenceScore: 0,
+          reasoning: ['Resolution failed: Workflow orchestration is disabled. Enable workflows to access cross-product coordination.']
+        };
+      }
       // Workflow nodes are like outcomes - traverse downward to find all actions
       downwardPath = graphOps.getDescendants(entryNodeId);
       selectedActions = downwardPath.filter((nodeId: string) => {

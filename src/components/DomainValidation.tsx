@@ -20,8 +20,8 @@ interface DomainStatistics {
   duplicateLabels: number;
   products: string[];
   productDistribution: Record<string, number>;
-  totalIntents: number;
-  intentsByLevel: Record<string, number>;
+  totalQuerys: number;
+  querysByLevel: Record<string, number>;
   graphDepth: number;
   avgChildrenPerLevel: Record<string, number>;
 }
@@ -42,11 +42,11 @@ const DomainValidation: React.FC = () => {
     
     const validator = new DomainValidator();
     const allResults: ValidationResultDisplay[] = [];
-    const domainData: Record<string, { nodes: any, intents: any[] }> = {};
+    const domainData: Record<string, { nodes: any, querys: any[] }> = {};
     const domainStats: Record<string, DomainStatistics> = {};
     
     const domains = selectedDomain === 'all' 
-      ? ['cision', 'healthcare', 'ecommerce', 'enterprise']
+      ? ['cision', 'healthcare', 'ecommerce', 'enterprise', 'financial']
       : [selectedDomain];
     
     for (const domainName of domains) {
@@ -57,14 +57,14 @@ const DomainValidation: React.FC = () => {
         // Store domain data for statistics
         domainData[domainName] = {
           nodes: domainModule.FUNCTIONAL_NODES || {},
-          intents: domainModule.USER_INTENTS || []
+          querys: domainModule.USER_QUERIES || []
         };
         
         // Generate statistics
         const stats = validator.gatherStatistics(
           domainName,
           domainModule.FUNCTIONAL_NODES || {},
-          domainModule.USER_INTENTS || []
+          domainModule.USER_QUERIES || []
         );
         domainStats[domainName] = stats;
         
@@ -72,7 +72,7 @@ const DomainValidation: React.FC = () => {
         const domainResults = validator.validateDomain(
           domainName,
           domainModule.FUNCTIONAL_NODES,
-          domainModule.USER_INTENTS,
+          domainModule.USER_QUERIES,
           domainModule.RATIONALIZED_NODE_ALTERNATIVES
         );
         
@@ -114,7 +114,7 @@ const DomainValidation: React.FC = () => {
     });
   };
 
-  const domains = ['all', 'cision', 'healthcare', 'ecommerce', 'enterprise'];
+  const domains = ['all', 'cision', 'healthcare', 'ecommerce', 'enterprise', 'financial'];
   const totalTests = results.length;
   const passedTests = results.filter(r => r.passed).length;
   const totalErrors = results.reduce((sum, r) => sum + r.errorCount, 0);
@@ -202,7 +202,7 @@ const DomainValidation: React.FC = () => {
                         <strong>Products:</strong> {stats.products.join(', ')}
                       </div>
                       <div>
-                        <strong>Total Intents:</strong> {stats.totalIntents}
+                        <strong>Total Querys:</strong> {stats.totalQuerys}
                       </div>
                     </div>
                     
@@ -277,11 +277,11 @@ const DomainValidation: React.FC = () => {
                       </div>
                     )}
                     
-                    {stats.totalIntents > 0 && (
+                    {stats.totalQuerys > 0 && (
                       <div style={{ marginTop: '10px' }}>
-                        <strong>Intent Distribution:</strong>
+                        <strong>Query Distribution:</strong>
                         <div style={{ fontSize: '13px', marginTop: '5px' }}>
-                          {Object.entries(stats.intentsByLevel).filter(([_, count]) => count > 0).map(([level, count]) => (
+                          {Object.entries(stats.querysByLevel).filter(([_, count]) => count > 0).map(([level, count]) => (
                             <div key={level}>
                               {level}: {count}
                             </div>

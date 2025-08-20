@@ -8,14 +8,14 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'EHR System',
     level: 'product',
     parents: [],
-    children: ['outcome-clinical-care', 'outcome-patient-records']
+    children: ['outcome-clinical-care', 'outcome-patient-records', 'workflow-patient-admission', 'workflow-emergency-response', 'workflow-chronic-care']
   },
   'product-pharmacy': {
     id: 'product-pharmacy',
     label: 'PharmaCare',
     level: 'product',
     parents: [],
-    children: ['outcome-medication-management', 'outcome-drug-safety']
+    children: ['outcome-medication-management', 'outcome-drug-safety', 'workflow-patient-admission', 'workflow-emergency-response', 'workflow-chronic-care']
   },
 
   // Outcome Level - EHR
@@ -24,15 +24,15 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Clinical Care',
     level: 'outcome',
     products: ['ehr'],
-    parents: ['product-ehr'],
-    children: ['scenario-patient-monitoring-ehr', 'scenario-patient-monitoring-shared', 'scenario-diagnosis-support']
+    parents: ['product-ehr', 'workflow-emergency-response', 'workflow-chronic-care'],
+    children: ['scenario-patient-monitoring-ehr', 'scenario-diagnosis-support']
   },
   'outcome-patient-records': {
     id: 'outcome-patient-records',
     label: 'Patient Records Management',
     level: 'outcome',
     products: ['ehr'],
-    parents: ['product-ehr'],
+    parents: ['product-ehr', 'workflow-patient-admission', 'workflow-chronic-care'],
     children: ['scenario-medical-history', 'scenario-lab-results']
   },
 
@@ -43,7 +43,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     level: 'outcome',
     products: ['pharmacy'],
     parents: ['product-pharmacy'],
-    children: ['scenario-patient-monitoring-pharmacy', 'scenario-patient-monitoring-shared', 'scenario-prescription-fulfillment']
+    children: ['scenario-patient-monitoring-pharmacy', 'scenario-prescription-fulfillment']
   },
   'outcome-drug-safety': {
     id: 'outcome-drug-safety',
@@ -125,14 +125,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
 
   // Shared Scenario (rationalization)
-  'scenario-patient-monitoring-shared': {
-    id: 'scenario-patient-monitoring-shared',
-    label: 'Unified Patient Monitoring',
-    level: 'scenario',
-    products: ['ehr', 'pharmacy'],
-    parents: ['outcome-clinical-care', 'outcome-medication-management'],
-    children: ['step-patient-monitoring-unified', 'step-alert-providers-shared']
-  },
 
   // ========= UNIQUE STEPS - EHR ONLY =========
   'step-analyze-symptoms': {
@@ -269,32 +261,6 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
 
   // Unified Steps
-  'step-patient-monitoring-unified': {
-    id: 'step-patient-monitoring-unified',
-    label: 'Unified Patient Monitoring',
-    level: 'step',
-    products: ['ehr', 'pharmacy'],
-    parents: ['scenario-patient-monitoring-shared'],
-    children: [
-      'action-record-vitals-ehr',
-      'action-monitor-trends-ehr',
-      'action-send-alert-ehr',
-      'action-monitor-refills-pharmacy',
-      'action-calculate-compliance-pharmacy',
-      'action-send-alert-pharmacy',
-      'action-track-unified',
-      'action-send-alert-shared',
-      'action-escalate-urgent-shared'
-    ]
-  },
-  'step-alert-providers-shared': {
-    id: 'step-alert-providers-shared',
-    label: 'Alert Providers',
-    level: 'step',
-    products: ['ehr', 'pharmacy'],
-    parents: ['scenario-patient-monitoring-shared'],
-    children: ['action-send-alert-shared', 'action-escalate-urgent-shared']
-  },
 
   // ========= UNIQUE ACTIONS - EHR ONLY =========
   'action-capture-symptoms': {
@@ -498,7 +464,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Record Vitals',
     level: 'action',
     products: ['ehr'],
-    parents: ['step-track-vitals-ehr', 'step-patient-monitoring-unified'],
+    parents: ['step-track-vitals-ehr'],
     children: []
   },
   'action-monitor-trends-ehr': {
@@ -506,7 +472,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Monitor Trends',
     level: 'action',
     products: ['ehr'],
-    parents: ['step-track-vitals-ehr', 'step-patient-monitoring-unified'],
+    parents: ['step-track-vitals-ehr'],
     children: []
   },
   'action-send-alert-ehr': {
@@ -514,7 +480,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Send Alert',
     level: 'action',
     products: ['ehr'],
-    parents: ['step-alert-providers-ehr', 'step-patient-monitoring-unified'],
+    parents: ['step-alert-providers-ehr'],
     children: []
   },
   'action-escalate-urgent-ehr': {
@@ -530,7 +496,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Monitor Refills',
     level: 'action',
     products: ['pharmacy'],
-    parents: ['step-track-adherence-pharmacy', 'step-patient-monitoring-unified'],
+    parents: ['step-track-adherence-pharmacy'],
     children: []
   },
   'action-calculate-compliance-pharmacy': {
@@ -538,7 +504,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Calculate Compliance',
     level: 'action',
     products: ['pharmacy'],
-    parents: ['step-track-adherence-pharmacy', 'step-patient-monitoring-unified'],
+    parents: ['step-track-adherence-pharmacy'],
     children: []
   },
   'action-send-alert-pharmacy': {
@@ -546,7 +512,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Send Alert',
     level: 'action',
     products: ['pharmacy'],
-    parents: ['step-alert-providers-pharmacy', 'step-patient-monitoring-unified'],
+    parents: ['step-alert-providers-pharmacy'],
     children: []
   },
   'action-escalate-urgent-pharmacy': {
@@ -559,28 +525,30 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
 
   // Shared Actions
-  'action-track-unified': {
-    id: 'action-track-unified',
-    label: 'Unified Tracking',
-    level: 'action',
-    products: ['ehr', 'pharmacy'],
-    parents: ['step-patient-monitoring-unified'],
-    children: []
+
+  // WORKFLOW LEVEL - Cross-product orchestration
+  'workflow-patient-admission': {
+    id: 'workflow-patient-admission',
+    label: 'Patient Admission Orchestration',
+    level: 'workflow',
+    children: ['outcome-patient-records', 'outcome-billing', 'outcome-medication-pharmacy'],
+    parents: [],
+    description: 'Coordinate patient admission across EHR, billing, and pharmacy'
   },
-  'action-send-alert-shared': {
-    id: 'action-send-alert-shared',
-    label: 'Send Alert',
-    level: 'action',
-    products: ['ehr', 'pharmacy'],
-    parents: ['step-patient-monitoring-unified', 'step-alert-providers-shared'],
-    children: []
+  'workflow-emergency-response': {
+    id: 'workflow-emergency-response',
+    label: 'Emergency Care Coordination',
+    level: 'workflow',
+    children: ['outcome-clinical-care', 'outcome-diagnostics', 'outcome-medication-pharmacy'],
+    parents: [],
+    description: 'Orchestrate emergency response across clinical, diagnostic, and pharmacy'
   },
-  'action-escalate-urgent-shared': {
-    id: 'action-escalate-urgent-shared',
-    label: 'Escalate Urgent',
-    level: 'action',
-    products: ['ehr', 'pharmacy'],
-    parents: ['step-patient-monitoring-unified', 'step-alert-providers-shared'],
-    children: []
-  }
+  'workflow-chronic-care': {
+    id: 'workflow-chronic-care',
+    label: 'Chronic Care Management',
+    level: 'workflow',
+    children: ['outcome-clinical-care', 'outcome-patient-records', 'outcome-medication-pharmacy', 'outcome-diagnostics'],
+    parents: [],
+    description: 'Manage chronic patient care across multiple touchpoints'
+  },
 };

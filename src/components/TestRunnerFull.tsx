@@ -45,7 +45,7 @@ const TestRunnerFull: React.FC = () => {
     
     return {
       FUNCTIONAL_NODES: domainModule.FUNCTIONAL_NODES,
-      USER_INTENTS: domainModule.USER_INTENTS,
+      USER_QUERIES: domainModule.USER_QUERIES,
       RATIONALIZED_NODE_ALTERNATIVES,
       DUPLICATE_NODES,
       SHARED_NODES,
@@ -63,7 +63,7 @@ const TestRunnerFull: React.FC = () => {
         .map((a: any, index: number) => ({
           id: `test-${index}`,
           persona: 'Test User',
-          intent: a.intent,
+          query: a.query,
           product: a.product,
           outcome: 'Test Outcome',
           matchedNode: 'test-node',
@@ -198,7 +198,7 @@ const TestRunnerFull: React.FC = () => {
     setIsRunning(false);
   };
 
-  const domains = ['all', 'cision', 'healthcare', 'ecommerce', 'enterprise'];
+  const domains = ['all', 'cision', 'healthcare', 'ecommerce', 'enterprise', 'financial'];
   const passedCount = results.filter(r => r.passed).length;
   const totalCount = results.length;
 
