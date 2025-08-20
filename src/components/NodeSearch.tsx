@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FunctionalNode } from '../types';
 import { searchNodes, getExpansionPaths, getSuggestedSearches, SearchResult, SearchOptions } from '../utils/nodeSearch';
 import './NodeSearch.css';
@@ -8,13 +8,15 @@ interface NodeSearchProps {
   onSearchResults?: (results: SearchResult[], expandNodes: Set<string>) => void;
   onNodeSelect?: (nodeId: string) => void;
   className?: string;
+  autoFocus?: boolean;
 }
 
 const NodeSearch: React.FC<NodeSearchProps> = ({ 
   nodes, 
   onSearchResults, 
   onNodeSelect,
-  className = ''
+  className = '',
+  autoFocus = false
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -22,6 +24,7 @@ const NodeSearch: React.FC<NodeSearchProps> = ({
   const [showResults, setShowResults] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Search options state
   const [searchOptions, setSearchOptions] = useState<Partial<SearchOptions>>({
@@ -32,6 +35,13 @@ const NodeSearch: React.FC<NodeSearchProps> = ({
   });
   
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Auto-focus the search input when component mounts or autoFocus prop changes
+  useEffect(() => {
+    if (autoFocus && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [autoFocus]);
 
   // Get suggestions on mount
   useEffect(() => {
@@ -161,6 +171,7 @@ const NodeSearch: React.FC<NodeSearchProps> = ({
       <div className="search-header">
         <div className="search-input-wrapper">
           <input
+            ref={searchInputRef}
             type="text"
             className="search-input"
             placeholder="Search nodes by label, ID, or description..."

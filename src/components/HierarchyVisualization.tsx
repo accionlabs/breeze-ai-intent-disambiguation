@@ -1368,6 +1368,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
             nodes={FUNCTIONAL_NODES}
             onSearchResults={handleSearchResults}
             onNodeSelect={handleNodeSelectFromSearch}
+            autoFocus={true}
           />
           
           {/* Search Results Summary */}
