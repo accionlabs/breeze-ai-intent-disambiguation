@@ -9,42 +9,42 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'SAP ERP',
     level: 'product',
     parents: [],
-    children: ['outcome-financial-control-sap', 'outcome-supply-chain-sap', 'workflow-employee-onboarding', '']
+    children: ['outcome-financial-control-sap', 'outcome-supply-chain-sap', 'workflow-employee-onboarding', 'workflow-business-intelligence']
   },
   'product-salesforce': {
     id: 'product-salesforce',
     label: 'Salesforce CRM',
     level: 'product',
     parents: [],
-    children: ['outcome-sales-growth-salesforce', 'outcome-customer-service-salesforce', '']
+    children: ['outcome-sales-growth-salesforce', 'outcome-customer-service-salesforce', 'workflow-business-intelligence']
   },
   'product-ms365': {
     id: 'product-ms365',
     label: 'Microsoft 365',
     level: 'product',
     parents: [],
-    children: ['outcome-collaboration-ms365', 'outcome-automation-ms365', 'workflow-employee-onboarding', '']
+    children: ['outcome-collaboration-ms365', 'outcome-automation-ms365', 'workflow-employee-onboarding', 'workflow-project-delivery']
   },
   'product-analytics': {
     id: 'product-analytics',
     label: 'Analytics Platform',
     level: 'product',
     parents: [],
-    children: ['outcome-business-intelligence-analytics', 'outcome-realtime-insights-analytics', '']
+    children: ['outcome-business-intelligence-analytics', 'outcome-realtime-insights-analytics', 'workflow-business-intelligence']
   },
-  'product-servicenow': {
-    id: 'product-servicenow',
-    label: 'ServiceNow',
+  'product-projects': {
+    id: 'product-projects',
+    label: 'Project Hub',
     level: 'product',
     parents: [],
-    children: ['outcome-customer-support-servicenow', 'outcome-it-service-management-servicenow', 'workflow-employee-onboarding', '']
+    children: ['outcome-project-delivery-projects', 'outcome-resource-optimization-projects', 'workflow-employee-onboarding', 'workflow-project-delivery']
   },
-  'product-monitoring': {
-    id: 'product-monitoring',
-    label: 'Infrastructure Monitoring',
+  'product-fieldops': {
+    id: 'product-fieldops',
+    label: 'Field Operations',
     level: 'product',
     parents: [],
-    children: ['outcome-system-observability-monitoring', 'outcome-performance-optimization-monitoring', '']
+    children: ['outcome-field-service-fieldops', 'outcome-mobile-workforce-fieldops', 'workflow-project-delivery']
   },
 
   // Outcome Level - Product-specific outcomes (no sharing)
@@ -90,7 +90,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     label: 'Team Collaboration',
     level: 'outcome',
     products: ['ms365'],
-    parents: ['product-ms365'],
+    parents: ['product-ms365', 'workflow-project-delivery'],
     children: ['scenario-team-communication', 'scenario-document-management-ms365']
   },
   'outcome-automation-ms365': {
@@ -121,39 +121,39 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
   },
 
   // Projects outcomes
-  'outcome-customer-support-servicenow': {
-    id: 'outcome-customer-support-servicenow',
-    label: 'Customer Support Excellence',
+  'outcome-project-delivery-projects': {
+    id: 'outcome-project-delivery-projects',
+    label: 'Project Delivery',
     level: 'outcome',
-    products: ['servicenow'],
-    parents: ['product-servicenow'],
-    children: ['scenario-ticket-management', 'scenario-knowledge-management-servicenow', 'scenario-sla-management', 'scenario-milestone-tracking']
+    products: ['projects'],
+    parents: ['product-projects'],
+    children: ['scenario-project-planning', 'scenario-document-management-projects', 'scenario-milestone-tracking']
   },
-  'outcome-it-service-management-servicenow': {
-    id: 'outcome-it-service-management-servicenow',
-    label: 'IT Service Management',
+  'outcome-resource-optimization-projects': {
+    id: 'outcome-resource-optimization-projects',
+    label: 'Resource Optimization',
     level: 'outcome',
-    products: ['servicenow'],
-    parents: ['product-servicenow'],
-    children: ['scenario-incident-management', 'scenario-change-management-servicenow', 'scenario-problem-management', 'scenario-document-management-servicenow', 'scenario-employee-management-servicenow', 'scenario-resource-allocation', 'scenario-capacity-planning']
+    products: ['projects'],
+    parents: ['product-projects'],
+    children: ['scenario-resource-allocation', 'scenario-employee-management-projects', 'scenario-capacity-planning']
   },
 
-  // Monitoring outcomes
-  'outcome-system-observability-monitoring': {
-    id: 'outcome-system-observability-monitoring',
-    label: 'System Observability',
+  // Field Ops outcomes
+  'outcome-field-service-fieldops': {
+    id: 'outcome-field-service-fieldops',
+    label: 'Field Service Excellence',
     level: 'outcome',
-    products: ['monitoring'],
-    parents: ['product-monitoring'],
-    children: ['scenario-metrics-collection', 'scenario-log-aggregation', 'scenario-employee-management-monitoring', 'scenario-mobile-timesheet', 'scenario-offline-sync']
+    products: ['fieldops'],
+    parents: ['product-fieldops'],
+    children: ['scenario-work-order-management', 'scenario-route-optimization']
   },
-  'outcome-performance-optimization-monitoring': {
-    id: 'outcome-performance-optimization-monitoring',
-    label: 'Performance Optimization',
+  'outcome-mobile-workforce-fieldops': {
+    id: 'outcome-mobile-workforce-fieldops',
+    label: 'Mobile Workforce',
     level: 'outcome',
-    products: ['monitoring'],
-    parents: ['product-monitoring'],
-    children: ['scenario-apm-monitoring', 'scenario-alerting-monitoring', 'scenario-capacity-planning-monitoring', 'scenario-work-order-management', 'scenario-route-optimization']
+    products: ['fieldops'],
+    parents: ['product-fieldops'],
+    children: ['scenario-mobile-timesheet', 'scenario-employee-management-fieldops', 'scenario-offline-sync']
   },
 
   // DUPLICATE SCENARIOS - These show the overlap problems
@@ -220,13 +220,13 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     parents: ['outcome-collaboration-ms365'],
     children: ['step-store-documents-ms365', 'step-share-documents-ms365']
   },
-  'scenario-document-management-servicenow': {
-    id: 'scenario-document-management-servicenow',
+  'scenario-document-management-projects': {
+    id: 'scenario-document-management-projects',
     label: 'Document Management',
     level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-it-service-management-servicenow'],
-    children: ['step-manage-deliverables-servicenow', 'step-version-control-servicenow']
+    products: ['projects'],
+    parents: ['outcome-project-delivery-projects'],
+    children: ['step-manage-deliverables-projects', 'step-version-control-projects']
   },
 
   // Employee Management appears in MS365, Projects, and Field Ops
@@ -238,21 +238,21 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     parents: ['outcome-automation-ms365'],
     children: ['step-manage-users-ms365', 'step-provision-access-ms365']
   },
-  'scenario-employee-management-servicenow': {
-    id: 'scenario-employee-management-servicenow',
+  'scenario-employee-management-projects': {
+    id: 'scenario-employee-management-projects',
     label: 'Employee Management',
     level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-it-service-management-servicenow'],
-    children: ['step-assign-resources-servicenow', 'step-track-availability-servicenow']
+    products: ['projects'],
+    parents: ['outcome-resource-optimization-projects'],
+    children: ['step-assign-resources-projects', 'step-track-availability-projects']
   },
-  'scenario-employee-management-monitoring': {
-    id: 'scenario-employee-management-monitoring',
+  'scenario-employee-management-fieldops': {
+    id: 'scenario-employee-management-fieldops',
     label: 'Employee Management',
     level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-system-observability-monitoring'],
-    children: ['step-schedule-technicians-monitoring', 'step-track-location-monitoring']
+    products: ['fieldops'],
+    parents: ['outcome-mobile-workforce-fieldops'],
+    children: ['step-schedule-technicians-fieldops', 'step-track-location-fieldops']
   },
 
   // SHARED SCENARIOS - Created through rationalization
@@ -330,36 +330,36 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     parents: ['outcome-realtime-insights-analytics'],
     children: ['step-build-models', 'step-generate-forecasts']
   },
-  'scenario-ticket-management': {
-    id: 'scenario-ticket-management',
-    label: 'Ticket Management',
+  'scenario-project-planning': {
+    id: 'scenario-project-planning',
+    label: 'Project Planning',
     level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-customer-support-servicenow'],
-    children: ['step-create-ticket', 'step-assign-ticket']
+    products: ['projects'],
+    parents: ['outcome-project-delivery-projects'],
+    children: ['step-define-scope', 'step-create-schedule']
   },
   'scenario-resource-allocation': {
     id: 'scenario-resource-allocation',
     label: 'Resource Allocation',
     level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-it-service-management-servicenow'],
+    products: ['projects'],
+    parents: ['outcome-resource-optimization-projects'],
     children: ['step-assign-team', 'step-balance-workload']
   },
   'scenario-work-order-management': {
     id: 'scenario-work-order-management',
     label: 'Work Order Management',
     level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-performance-optimization-monitoring'],
+    products: ['fieldops'],
+    parents: ['outcome-field-service-fieldops'],
     children: ['step-create-work-order', 'step-dispatch-technician']
   },
   'scenario-route-optimization': {
     id: 'scenario-route-optimization',
     label: 'Route Optimization',
     level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-performance-optimization-monitoring'],
+    products: ['fieldops'],
+    parents: ['outcome-field-service-fieldops'],
     children: ['step-plan-routes', 'step-optimize-travel']
   },
 
@@ -549,23 +549,23 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-define-scope',
     label: 'Define Scope',
     level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-milestone-tracking'],
-    children: ['action-define-scope-document', 'action-define-scope-approve', 'step-define-scope', 'step-create-schedule']
+    products: ['projects'],
+    parents: ['scenario-project-planning'],
+    children: ['action-define-scope-document', 'action-define-scope-approve']
   },
   'step-create-schedule': {
     id: 'step-create-schedule',
     label: 'Create Schedule',
     level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-milestone-tracking'],
+    products: ['projects'],
+    parents: ['scenario-project-planning'],
     children: ['action-create-schedule-tasks', 'action-create-schedule-timeline']
   },
   'step-assign-team': {
     id: 'step-assign-team',
     label: 'Assign Team',
     level: 'step',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['scenario-resource-allocation'],
     children: ['action-assign-team-members', 'action-assign-team-roles']
   },
@@ -573,7 +573,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-balance-workload',
     label: 'Balance Workload',
     level: 'step',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['scenario-resource-allocation'],
     children: ['action-balance-workload-analyze', 'action-balance-workload-adjust']
   },
@@ -581,7 +581,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-create-work-order',
     label: 'Create Work Order',
     level: 'step',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['scenario-work-order-management'],
     children: ['action-create-work-order-new', 'action-create-work-order-schedule']
   },
@@ -589,7 +589,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-dispatch-technician',
     label: 'Dispatch Technician',
     level: 'step',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['scenario-work-order-management'],
     children: ['action-dispatch-technician-assign', 'action-dispatch-technician-notify']
   },
@@ -597,7 +597,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-plan-routes',
     label: 'Plan Routes',
     level: 'step',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['scenario-route-optimization'],
     children: ['action-plan-routes-optimize', 'action-plan-routes-map']
   },
@@ -605,7 +605,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-optimize-travel',
     label: 'Optimize Travel',
     level: 'step',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['scenario-route-optimization'],
     children: ['action-optimize-travel-calculate', 'action-optimize-travel-reroute']
   },
@@ -691,20 +691,20 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     parents: ['scenario-document-management-ms365'],
     children: ['action-share-documents-grant', 'action-share-documents-link']
   },
-  'step-manage-deliverables-servicenow': {
-    id: 'step-manage-deliverables-servicenow',
+  'step-manage-deliverables-projects': {
+    id: 'step-manage-deliverables-projects',
     label: 'Manage Deliverables',
     level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-document-management-servicenow'],
+    products: ['projects'],
+    parents: ['scenario-document-management-projects'],
     children: ['action-manage-deliverables-track', 'action-manage-deliverables-approve']
   },
-  'step-version-control-servicenow': {
-    id: 'step-version-control-servicenow',
+  'step-version-control-projects': {
+    id: 'step-version-control-projects',
     label: 'Version Control',
     level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-document-management-servicenow'],
+    products: ['projects'],
+    parents: ['scenario-document-management-projects'],
     children: ['action-version-control-commit', 'action-version-control-tag']
   },
   'step-manage-users-ms365': {
@@ -723,36 +723,36 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     parents: ['scenario-employee-management-ms365'],
     children: ['action-provision-access-grant', 'action-provision-access-revoke']
   },
-  'step-assign-resources-servicenow': {
-    id: 'step-assign-resources-servicenow',
+  'step-assign-resources-projects': {
+    id: 'step-assign-resources-projects',
     label: 'Assign Resources',
     level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-employee-management-servicenow'],
+    products: ['projects'],
+    parents: ['scenario-employee-management-projects'],
     children: ['action-assign-resources-allocate', 'action-assign-resources-schedule']
   },
-  'step-track-availability-servicenow': {
-    id: 'step-track-availability-servicenow',
+  'step-track-availability-projects': {
+    id: 'step-track-availability-projects',
     label: 'Track Availability',
     level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-employee-management-servicenow'],
+    products: ['projects'],
+    parents: ['scenario-employee-management-projects'],
     children: ['action-track-availability-check', 'action-track-availability-update']
   },
-  'step-schedule-technicians-monitoring': {
-    id: 'step-schedule-technicians-monitoring',
+  'step-schedule-technicians-fieldops': {
+    id: 'step-schedule-technicians-fieldops',
     label: 'Schedule Technicians',
     level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-employee-management-monitoring'],
+    products: ['fieldops'],
+    parents: ['scenario-employee-management-fieldops'],
     children: ['action-schedule-technicians-assign', 'action-schedule-technicians-optimize']
   },
-  'step-track-location-monitoring': {
-    id: 'step-track-location-monitoring',
+  'step-track-location-fieldops': {
+    id: 'step-track-location-fieldops',
     label: 'Track Location',
     level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-employee-management-monitoring'],
+    products: ['fieldops'],
+    parents: ['scenario-employee-management-fieldops'],
     children: ['action-track-location-gps', 'action-track-location-update']
   },
   'scenario-inventory-management': {
@@ -827,95 +827,19 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     parents: ['scenario-knowledge-base'],
     children: ['action-search-solutions-query', 'action-search-solutions-suggest']
   },
-  // ServiceNow ITSM scenarios
-  'scenario-incident-management': {
-    id: 'scenario-incident-management',
-    label: 'Incident Management',
-    level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-it-service-management-servicenow'],
-    children: ['step-create-incident', 'step-resolve-incident']
-  },
-  'scenario-change-management-servicenow': {
-    id: 'scenario-change-management-servicenow',
-    label: 'Change Management',
-    level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-it-service-management-servicenow'],
-    children: ['step-request-change', 'step-approve-change']
-  },
-  'scenario-problem-management': {
-    id: 'scenario-problem-management',
-    label: 'Problem Management',
-    level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-it-service-management-servicenow'],
-    children: ['step-identify-root-cause', 'step-implement-fix']
-  },
-  'scenario-knowledge-management-servicenow': {
-    id: 'scenario-knowledge-management-servicenow',
-    label: 'Knowledge Management',
-    level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-customer-support-servicenow'],
-    children: ['step-create-kb-article', 'step-search-knowledge']
-  },
-  
-  // Monitoring scenarios
-  'scenario-metrics-collection': {
-    id: 'scenario-metrics-collection',
-    label: 'Metrics Collection',
-    level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-system-observability-monitoring'],
-    children: ['step-collect-metrics', 'step-aggregate-data']
-  },
-  'scenario-log-aggregation': {
-    id: 'scenario-log-aggregation',
-    label: 'Log Aggregation',
-    level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-system-observability-monitoring'],
-    children: ['step-collect-logs', 'step-parse-logs']
-  },
-  'scenario-apm-monitoring': {
-    id: 'scenario-apm-monitoring',
-    label: 'Application Performance Monitoring',
-    level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-performance-optimization-monitoring'],
-    children: ['step-trace-requests', 'step-analyze-performance']
-  },
-  'scenario-alerting-monitoring': {
-    id: 'scenario-alerting-monitoring',
-    label: 'Alerting & Notifications',
-    level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-performance-optimization-monitoring'],
-    children: ['step-define-alerts', 'step-notify-teams']
-  },
-  'scenario-capacity-planning-monitoring': {
-    id: 'scenario-capacity-planning-monitoring',
-    label: 'Capacity Planning',
-    level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-performance-optimization-monitoring'],
-    children: ['step-forecast-usage', 'step-plan-scaling']
-  },
-  
   'scenario-milestone-tracking': {
     id: 'scenario-milestone-tracking',
     label: 'Milestone Tracking',
     level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-customer-support-servicenow'],
+    products: ['projects'],
+    parents: ['outcome-project-delivery-projects'],
     children: ['step-set-milestones', 'step-track-progress']
   },
   'step-set-milestones': {
     id: 'step-set-milestones',
     label: 'Set Milestones',
     level: 'step',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['scenario-milestone-tracking'],
     children: ['action-set-milestones-define', 'action-set-milestones-schedule']
   },
@@ -923,7 +847,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-track-progress',
     label: 'Track Progress',
     level: 'step',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['scenario-milestone-tracking'],
     children: ['action-track-progress-update', 'action-track-progress-report']
   },
@@ -931,15 +855,15 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-capacity-planning',
     label: 'Capacity Planning',
     level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-it-service-management-servicenow'],
+    products: ['projects'],
+    parents: ['outcome-resource-optimization-projects'],
     children: ['step-forecast-demand', 'step-allocate-capacity']
   },
   'step-forecast-demand': {
     id: 'step-forecast-demand',
     label: 'Forecast Demand',
     level: 'step',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['scenario-capacity-planning'],
     children: ['action-forecast-demand-analyze', 'action-forecast-demand-predict']
   },
@@ -947,7 +871,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-allocate-capacity',
     label: 'Allocate Capacity',
     level: 'step',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['scenario-capacity-planning'],
     children: ['action-allocate-capacity-assign', 'action-allocate-capacity-balance']
   },
@@ -955,15 +879,15 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-mobile-timesheet',
     label: 'Mobile Timesheet',
     level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-system-observability-monitoring'],
+    products: ['fieldops'],
+    parents: ['outcome-mobile-workforce-fieldops'],
     children: ['step-log-time', 'step-submit-timesheet']
   },
   'step-log-time': {
     id: 'step-log-time',
     label: 'Log Time',
     level: 'step',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['scenario-mobile-timesheet'],
     children: ['action-log-time-enter', 'action-log-time-save']
   },
@@ -971,7 +895,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-submit-timesheet',
     label: 'Submit Timesheet',
     level: 'step',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['scenario-mobile-timesheet'],
     children: ['action-submit-timesheet-review', 'action-submit-timesheet-submit']
   },
@@ -979,15 +903,15 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'scenario-offline-sync',
     label: 'Offline Sync',
     level: 'scenario',
-    products: ['monitoring'],
-    parents: ['outcome-system-observability-monitoring'],
+    products: ['fieldops'],
+    parents: ['outcome-mobile-workforce-fieldops'],
     children: ['step-cache-data', 'step-sync-changes']
   },
   'step-cache-data': {
     id: 'step-cache-data',
     label: 'Cache Data',
     level: 'step',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['scenario-offline-sync'],
     children: ['action-cache-data-store', 'action-cache-data-update']
   },
@@ -995,202 +919,12 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'step-sync-changes',
     label: 'Sync Changes',
     level: 'step',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['scenario-offline-sync'],
     children: ['action-sync-changes-upload', 'action-sync-changes-merge']
   },
 
-  
-  // ServiceNow ITSM Steps
-  'scenario-sla-management': {
-    id: 'scenario-sla-management',
-    label: 'SLA Management',
-    level: 'scenario',
-    products: ['servicenow'],
-    parents: ['outcome-customer-support-servicenow'],
-    children: ['step-define-sla', 'step-monitor-sla']
-  },
-  'step-define-sla': {
-    id: 'step-define-sla',
-    label: 'Define SLAs',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-sla-management'],
-    children: ['action-define-sla-create', 'action-define-sla-configure']
-  },
-  'step-monitor-sla': {
-    id: 'step-monitor-sla',
-    label: 'Monitor SLAs',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-sla-management'],
-    children: ['action-monitor-sla-track', 'action-monitor-sla-alert']
-  },
-  'step-create-ticket': {
-    id: 'step-create-ticket',
-    label: 'Create Support Ticket',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-ticket-management'],
-    children: ['action-create-ticket-new', 'action-create-ticket-categorize']
-  },
-  'step-assign-ticket': {
-    id: 'step-assign-ticket',
-    label: 'Assign Ticket',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-ticket-management'],
-    children: ['action-assign-ticket-route', 'action-assign-ticket-notify']
-  },
-  'step-create-incident': {
-    id: 'step-create-incident',
-    label: 'Create Incident',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-incident-management'],
-    children: ['action-create-incident-new', 'action-create-incident-categorize']
-  },
-  'step-resolve-incident': {
-    id: 'step-resolve-incident',
-    label: 'Resolve Incident',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-incident-management'],
-    children: ['action-resolve-incident-fix', 'action-resolve-incident-close']
-  },
-  'step-request-change': {
-    id: 'step-request-change',
-    label: 'Request Change',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-change-management-servicenow'],
-    children: ['action-request-change-submit', 'action-request-change-document']
-  },
-  'step-approve-change': {
-    id: 'step-approve-change',
-    label: 'Approve Change',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-change-management-servicenow'],
-    children: ['action-approve-change-review', 'action-approve-change-authorize']
-  },
-  'step-identify-root-cause': {
-    id: 'step-identify-root-cause',
-    label: 'Identify Root Cause',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-problem-management'],
-    children: ['action-identify-root-cause-analyze', 'action-identify-root-cause-document']
-  },
-  'step-implement-fix': {
-    id: 'step-implement-fix',
-    label: 'Implement Fix',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-problem-management'],
-    children: ['action-implement-fix-deploy', 'action-implement-fix-validate']
-  },
-  'step-create-kb-article': {
-    id: 'step-create-kb-article',
-    label: 'Create KB Article',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-knowledge-management-servicenow'],
-    children: ['action-create-kb-article-write', 'action-create-kb-article-publish']
-  },
-  'step-search-knowledge': {
-    id: 'step-search-knowledge',
-    label: 'Search Knowledge Base',
-    level: 'step',
-    products: ['servicenow'],
-    parents: ['scenario-knowledge-management-servicenow'],
-    children: ['action-search-knowledge-query', 'action-search-knowledge-suggest']
-  },
-  
-  // Monitoring Steps
-  'step-collect-metrics': {
-    id: 'step-collect-metrics',
-    label: 'Collect Metrics',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-metrics-collection'],
-    children: ['action-collect-metrics-gather', 'action-collect-metrics-store']
-  },
-  'step-aggregate-data': {
-    id: 'step-aggregate-data',
-    label: 'Aggregate Data',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-metrics-collection'],
-    children: ['action-aggregate-data-combine', 'action-aggregate-data-summarize']
-  },
-  'step-collect-logs': {
-    id: 'step-collect-logs',
-    label: 'Collect Logs',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-log-aggregation'],
-    children: ['action-collect-logs-gather', 'action-collect-logs-centralize']
-  },
-  'step-parse-logs': {
-    id: 'step-parse-logs',
-    label: 'Parse Logs',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-log-aggregation'],
-    children: ['action-parse-logs-extract', 'action-parse-logs-structure']
-  },
-  'step-trace-requests': {
-    id: 'step-trace-requests',
-    label: 'Trace Requests',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-apm-monitoring'],
-    children: ['action-trace-requests-track', 'action-trace-requests-correlate']
-  },
-  'step-analyze-performance': {
-    id: 'step-analyze-performance',
-    label: 'Analyze Performance',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-apm-monitoring'],
-    children: ['action-analyze-performance-measure', 'action-analyze-performance-report']
-  },
-  'step-define-alerts': {
-    id: 'step-define-alerts',
-    label: 'Define Alerts',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-alerting-monitoring'],
-    children: ['action-define-alerts-create', 'action-define-alerts-configure']
-  },
-  'step-notify-teams': {
-    id: 'step-notify-teams',
-    label: 'Notify Teams',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-alerting-monitoring'],
-    children: ['action-notify-teams-send', 'action-notify-teams-escalate']
-  },
-  'step-forecast-usage': {
-    id: 'step-forecast-usage',
-    label: 'Forecast Usage',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-capacity-planning-monitoring'],
-    children: ['action-forecast-usage-predict', 'action-forecast-usage-model']
-  },
-  'step-plan-scaling': {
-    id: 'step-plan-scaling',
-    label: 'Plan Scaling',
-    level: 'step',
-    products: ['monitoring'],
-    parents: ['scenario-capacity-planning-monitoring'],
-    children: ['action-plan-scaling-calculate', 'action-plan-scaling-recommend']
-  },
-
-
-// Action Level - Simplified (only a few examples)
+  // Action Level - Simplified (only a few examples)
   'action-run-report-sap': {
     id: 'action-run-report-sap',
     label: 'Run Report',
@@ -1590,7 +1324,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-define-scope-document',
     label: 'Document Scope',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-define-scope'],
     children: []
   },
@@ -1598,7 +1332,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-define-scope-approve',
     label: 'Approve Scope',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-define-scope'],
     children: []
   },
@@ -1606,7 +1340,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-create-schedule-tasks',
     label: 'Define Tasks',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-create-schedule'],
     children: []
   },
@@ -1614,7 +1348,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-create-schedule-timeline',
     label: 'Set Timeline',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-create-schedule'],
     children: []
   },
@@ -1624,7 +1358,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-assign-team-members',
     label: 'Assign Members',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-assign-team'],
     children: []
   },
@@ -1632,7 +1366,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-assign-team-roles',
     label: 'Define Roles',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-assign-team'],
     children: []
   },
@@ -1640,7 +1374,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-balance-workload-analyze',
     label: 'Analyze Load',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-balance-workload'],
     children: []
   },
@@ -1648,7 +1382,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-balance-workload-adjust',
     label: 'Adjust Allocation',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-balance-workload'],
     children: []
   },
@@ -1658,7 +1392,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-create-work-order-new',
     label: 'New Work Order',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-create-work-order'],
     children: []
   },
@@ -1666,7 +1400,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-create-work-order-schedule',
     label: 'Schedule Work',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-create-work-order'],
     children: []
   },
@@ -1674,7 +1408,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-dispatch-technician-assign',
     label: 'Assign Technician',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-dispatch-technician'],
     children: []
   },
@@ -1682,7 +1416,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-dispatch-technician-notify',
     label: 'Notify Technician',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-dispatch-technician'],
     children: []
   },
@@ -1690,7 +1424,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-plan-routes-optimize',
     label: 'Optimize Route',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-plan-routes'],
     children: []
   },
@@ -1698,7 +1432,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-plan-routes-map',
     label: 'Map Route',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-plan-routes'],
     children: []
   },
@@ -1706,7 +1440,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-optimize-travel-calculate',
     label: 'Calculate Time',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-optimize-travel'],
     children: []
   },
@@ -1714,7 +1448,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-optimize-travel-reroute',
     label: 'Suggest Reroute',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-optimize-travel'],
     children: []
   },
@@ -1868,32 +1602,32 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-manage-deliverables-track',
     label: 'Track Deliverable',
     level: 'action',
-    products: ['servicenow'],
-    parents: ['step-manage-deliverables-servicenow'],
+    products: ['projects'],
+    parents: ['step-manage-deliverables-projects'],
     children: []
   },
   'action-manage-deliverables-approve': {
     id: 'action-manage-deliverables-approve',
     label: 'Approve Deliverable',
     level: 'action',
-    products: ['servicenow'],
-    parents: ['step-manage-deliverables-servicenow'],
+    products: ['projects'],
+    parents: ['step-manage-deliverables-projects'],
     children: []
   },
   'action-version-control-commit': {
     id: 'action-version-control-commit',
     label: 'Commit Version',
     level: 'action',
-    products: ['servicenow'],
-    parents: ['step-version-control-servicenow'],
+    products: ['projects'],
+    parents: ['step-version-control-projects'],
     children: []
   },
   'action-version-control-tag': {
     id: 'action-version-control-tag',
     label: 'Tag Release',
     level: 'action',
-    products: ['servicenow'],
-    parents: ['step-version-control-servicenow'],
+    products: ['projects'],
+    parents: ['step-version-control-projects'],
     children: []
   },
   'action-manage-users-create': {
@@ -1932,64 +1666,64 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-assign-resources-allocate',
     label: 'Allocate Resource',
     level: 'action',
-    products: ['servicenow'],
-    parents: ['step-assign-resources-servicenow'],
+    products: ['projects'],
+    parents: ['step-assign-resources-projects'],
     children: []
   },
   'action-assign-resources-schedule': {
     id: 'action-assign-resources-schedule',
     label: 'Schedule Resource',
     level: 'action',
-    products: ['servicenow'],
-    parents: ['step-assign-resources-servicenow'],
+    products: ['projects'],
+    parents: ['step-assign-resources-projects'],
     children: []
   },
   'action-track-availability-check': {
     id: 'action-track-availability-check',
     label: 'Check Availability',
     level: 'action',
-    products: ['servicenow'],
-    parents: ['step-track-availability-servicenow'],
+    products: ['projects'],
+    parents: ['step-track-availability-projects'],
     children: []
   },
   'action-track-availability-update': {
     id: 'action-track-availability-update',
     label: 'Update Calendar',
     level: 'action',
-    products: ['servicenow'],
-    parents: ['step-track-availability-servicenow'],
+    products: ['projects'],
+    parents: ['step-track-availability-projects'],
     children: []
   },
   'action-schedule-technicians-assign': {
     id: 'action-schedule-technicians-assign',
     label: 'Assign Schedule',
     level: 'action',
-    products: ['monitoring'],
-    parents: ['step-schedule-technicians-monitoring'],
+    products: ['fieldops'],
+    parents: ['step-schedule-technicians-fieldops'],
     children: []
   },
   'action-schedule-technicians-optimize': {
     id: 'action-schedule-technicians-optimize',
     label: 'Optimize Schedule',
     level: 'action',
-    products: ['monitoring'],
-    parents: ['step-schedule-technicians-monitoring'],
+    products: ['fieldops'],
+    parents: ['step-schedule-technicians-fieldops'],
     children: []
   },
   'action-track-location-gps': {
     id: 'action-track-location-gps',
     label: 'Track GPS',
     level: 'action',
-    products: ['monitoring'],
-    parents: ['step-track-location-monitoring'],
+    products: ['fieldops'],
+    parents: ['step-track-location-fieldops'],
     children: []
   },
   'action-track-location-update': {
     id: 'action-track-location-update',
     label: 'Update Location',
     level: 'action',
-    products: ['monitoring'],
-    parents: ['step-track-location-monitoring'],
+    products: ['fieldops'],
+    parents: ['step-track-location-fieldops'],
     children: []
   },
   'action-track-stock-monitor': {
@@ -2092,7 +1826,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-set-milestones-define',
     label: 'Define Milestone',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-set-milestones'],
     children: []
   },
@@ -2100,7 +1834,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-set-milestones-schedule',
     label: 'Schedule Milestone',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-set-milestones'],
     children: []
   },
@@ -2108,7 +1842,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-track-progress-update',
     label: 'Update Progress',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-track-progress'],
     children: []
   },
@@ -2116,7 +1850,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-track-progress-report',
     label: 'Report Status',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-track-progress'],
     children: []
   },
@@ -2124,7 +1858,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-forecast-demand-analyze',
     label: 'Analyze Demand',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-forecast-demand'],
     children: []
   },
@@ -2132,7 +1866,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-forecast-demand-predict',
     label: 'Predict Demand',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-forecast-demand'],
     children: []
   },
@@ -2140,7 +1874,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-allocate-capacity-assign',
     label: 'Assign Capacity',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-allocate-capacity'],
     children: []
   },
@@ -2148,7 +1882,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-allocate-capacity-balance',
     label: 'Balance Load',
     level: 'action',
-    products: ['servicenow'],
+    products: ['projects'],
     parents: ['step-allocate-capacity'],
     children: []
   },
@@ -2156,7 +1890,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-log-time-enter',
     label: 'Enter Time',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-log-time'],
     children: []
   },
@@ -2164,7 +1898,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-log-time-save',
     label: 'Save Entry',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-log-time'],
     children: []
   },
@@ -2172,7 +1906,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-submit-timesheet-review',
     label: 'Review Timesheet',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-submit-timesheet'],
     children: []
   },
@@ -2180,7 +1914,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-submit-timesheet-submit',
     label: 'Submit Timesheet',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-submit-timesheet'],
     children: []
   },
@@ -2188,7 +1922,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-cache-data-store',
     label: 'Store Offline',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-cache-data'],
     children: []
   },
@@ -2196,7 +1930,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-cache-data-update',
     label: 'Update Cache',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-cache-data'],
     children: []
   },
@@ -2204,7 +1938,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-sync-changes-upload',
     label: 'Upload Changes',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-sync-changes'],
     children: []
   },
@@ -2212,7 +1946,7 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'action-sync-changes-merge',
     label: 'Merge Data',
     level: 'action',
-    products: ['monitoring'],
+    products: ['fieldops'],
     parents: ['step-sync-changes'],
     children: []
   }
@@ -2224,23 +1958,15 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'workflow-employee-onboarding',
     label: 'Employee Onboarding Orchestration',
     level: 'workflow',
-    children: ['outcome-automation-ms365', 'outcome-it-service-management-servicenow', 'outcome-financial-control-sap'],
+    children: ['outcome-employee-management-ms365', 'outcome-employee-management-projects', 'outcome-financial-reporting-sap'],
     parents: [],
     description: 'Complete employee onboarding across HR, IT, and collaboration tools'
-  },
-  'workflow-incident-response': {
-    id: 'workflow-incident-response',
-    label: 'Incident Response Coordination',
-    level: 'workflow',
-    children: ['outcome-it-service-management-servicenow', 'outcome-system-observability-monitoring', 'outcome-collaboration-ms365'],
-    parents: [],
-    description: 'Coordinate incident detection, response, and resolution across IT service management and monitoring'
   },
   'workflow-project-delivery': {
     id: 'workflow-project-delivery',
     label: 'Project Delivery Coordination',
     level: 'workflow',
-    children: ['outcome-customer-support-servicenow', 'outcome-collaboration-ms365', 'outcome-business-intelligence-analytics'],
+    children: ['outcome-project-management-projects', 'outcome-field-operations-fieldops', 'outcome-collaboration-ms365'],
     parents: [],
     description: 'Orchestrate project delivery from planning through execution'
   },
@@ -2248,364 +1974,8 @@ export const FUNCTIONAL_NODES: Record<string, FunctionalNode> = {
     id: 'workflow-business-intelligence',
     label: 'Business Intelligence Pipeline',
     level: 'workflow',
-    children: ['outcome-financial-control-sap', 'outcome-business-intelligence-analytics', 'outcome-sales-growth-salesforce'],
+    children: ['outcome-financial-reporting-sap', 'outcome-business-analytics', 'outcome-customer-360-salesforce'],
     parents: [],
     description: 'Coordinate data flow from operations through analytics to reporting'
   },
-  // Missing ServiceNow ITSM Actions
-  'action-define-sla-create': {
-    id: 'action-define-sla-create',
-    label: 'Create SLA',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-define-sla'],
-    children: []
-  },
-  'action-define-sla-configure': {
-    id: 'action-define-sla-configure',
-    label: 'Configure SLA',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-define-sla'],
-    children: []
-  },
-  'action-monitor-sla-track': {
-    id: 'action-monitor-sla-track',
-    label: 'Track SLA',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-monitor-sla'],
-    children: []
-  },
-  'action-monitor-sla-alert': {
-    id: 'action-monitor-sla-alert',
-    label: 'SLA Alert',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-monitor-sla'],
-    children: []
-  },
-  'action-create-ticket-new': {
-    id: 'action-create-ticket-new',
-    label: 'New Ticket',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-create-ticket'],
-    children: []
-  },
-  'action-create-ticket-categorize': {
-    id: 'action-create-ticket-categorize',
-    label: 'Categorize Ticket',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-create-ticket'],
-    children: []
-  },
-  'action-assign-ticket-route': {
-    id: 'action-assign-ticket-route',
-    label: 'Route Ticket',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-assign-ticket'],
-    children: []
-  },
-  'action-assign-ticket-notify': {
-    id: 'action-assign-ticket-notify',
-    label: 'Notify Assignee',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-assign-ticket'],
-    children: []
-  },
-  'action-create-incident-new': {
-    id: 'action-create-incident-new',
-    label: 'New Incident',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-create-incident'],
-    children: []
-  },
-  'action-create-incident-categorize': {
-    id: 'action-create-incident-categorize',
-    label: 'Categorize Incident',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-create-incident'],
-    children: []
-  },
-  'action-resolve-incident-fix': {
-    id: 'action-resolve-incident-fix',
-    label: 'Apply Fix',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-resolve-incident'],
-    children: []
-  },
-  'action-resolve-incident-close': {
-    id: 'action-resolve-incident-close',
-    label: 'Close Incident',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-resolve-incident'],
-    children: []
-  },
-  'action-request-change-submit': {
-    id: 'action-request-change-submit',
-    label: 'Submit Change',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-request-change'],
-    children: []
-  },
-  'action-request-change-document': {
-    id: 'action-request-change-document',
-    label: 'Document Change',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-request-change'],
-    children: []
-  },
-  'action-approve-change-review': {
-    id: 'action-approve-change-review',
-    label: 'Review Change',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-approve-change'],
-    children: []
-  },
-  'action-approve-change-authorize': {
-    id: 'action-approve-change-authorize',
-    label: 'Authorize Change',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-approve-change'],
-    children: []
-  },
-  'action-identify-root-cause-analyze': {
-    id: 'action-identify-root-cause-analyze',
-    label: 'Analyze Cause',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-identify-root-cause'],
-    children: []
-  },
-  'action-identify-root-cause-document': {
-    id: 'action-identify-root-cause-document',
-    label: 'Document Cause',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-identify-root-cause'],
-    children: []
-  },
-  'action-implement-fix-deploy': {
-    id: 'action-implement-fix-deploy',
-    label: 'Deploy Fix',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-implement-fix'],
-    children: []
-  },
-  'action-implement-fix-validate': {
-    id: 'action-implement-fix-validate',
-    label: 'Validate Fix',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-implement-fix'],
-    children: []
-  },
-  'action-create-kb-article-write': {
-    id: 'action-create-kb-article-write',
-    label: 'Write Article',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-create-kb-article'],
-    children: []
-  },
-  'action-create-kb-article-publish': {
-    id: 'action-create-kb-article-publish',
-    label: 'Publish Article',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-create-kb-article'],
-    children: []
-  },
-  'action-search-knowledge-query': {
-    id: 'action-search-knowledge-query',
-    label: 'Search KB',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-search-knowledge'],
-    children: []
-  },
-  'action-search-knowledge-suggest': {
-    id: 'action-search-knowledge-suggest',
-    label: 'Suggest Articles',
-    level: 'action',
-    products: ['servicenow'],
-    parents: ['step-search-knowledge'],
-    children: []
-  },
-  
-  // Missing Monitoring Actions
-  'action-collect-metrics-gather': {
-    id: 'action-collect-metrics-gather',
-    label: 'Gather Metrics',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-collect-metrics'],
-    children: []
-  },
-  'action-collect-metrics-store': {
-    id: 'action-collect-metrics-store',
-    label: 'Store Metrics',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-collect-metrics'],
-    children: []
-  },
-  'action-aggregate-data-combine': {
-    id: 'action-aggregate-data-combine',
-    label: 'Combine Data',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-aggregate-data'],
-    children: []
-  },
-  'action-aggregate-data-summarize': {
-    id: 'action-aggregate-data-summarize',
-    label: 'Summarize Data',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-aggregate-data'],
-    children: []
-  },
-  'action-collect-logs-gather': {
-    id: 'action-collect-logs-gather',
-    label: 'Gather Logs',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-collect-logs'],
-    children: []
-  },
-  'action-collect-logs-centralize': {
-    id: 'action-collect-logs-centralize',
-    label: 'Centralize Logs',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-collect-logs'],
-    children: []
-  },
-  'action-parse-logs-extract': {
-    id: 'action-parse-logs-extract',
-    label: 'Extract Fields',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-parse-logs'],
-    children: []
-  },
-  'action-parse-logs-structure': {
-    id: 'action-parse-logs-structure',
-    label: 'Structure Data',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-parse-logs'],
-    children: []
-  },
-  'action-trace-requests-track': {
-    id: 'action-trace-requests-track',
-    label: 'Track Request',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-trace-requests'],
-    children: []
-  },
-  'action-trace-requests-correlate': {
-    id: 'action-trace-requests-correlate',
-    label: 'Correlate Traces',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-trace-requests'],
-    children: []
-  },
-  'action-analyze-performance-measure': {
-    id: 'action-analyze-performance-measure',
-    label: 'Measure Performance',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-analyze-performance'],
-    children: []
-  },
-  'action-analyze-performance-report': {
-    id: 'action-analyze-performance-report',
-    label: 'Performance Report',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-analyze-performance'],
-    children: []
-  },
-  'action-define-alerts-create': {
-    id: 'action-define-alerts-create',
-    label: 'Create Alert',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-define-alerts'],
-    children: []
-  },
-  'action-define-alerts-configure': {
-    id: 'action-define-alerts-configure',
-    label: 'Configure Alert',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-define-alerts'],
-    children: []
-  },
-  'action-notify-teams-send': {
-    id: 'action-notify-teams-send',
-    label: 'Send Notification',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-notify-teams'],
-    children: []
-  },
-  'action-notify-teams-escalate': {
-    id: 'action-notify-teams-escalate',
-    label: 'Escalate Alert',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-notify-teams'],
-    children: []
-  },
-  'action-forecast-usage-predict': {
-    id: 'action-forecast-usage-predict',
-    label: 'Predict Usage',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-forecast-usage'],
-    children: []
-  },
-  'action-forecast-usage-model': {
-    id: 'action-forecast-usage-model',
-    label: 'Model Capacity',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-forecast-usage'],
-    children: []
-  },
-  'action-plan-scaling-calculate': {
-    id: 'action-plan-scaling-calculate',
-    label: 'Calculate Scaling',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-plan-scaling'],
-    children: []
-  },
-  'action-plan-scaling-recommend': {
-    id: 'action-plan-scaling-recommend',
-    label: 'Recommend Scaling',
-    level: 'action',
-    products: ['monitoring'],
-    parents: ['step-plan-scaling'],
-    children: []
-  }
-
 };

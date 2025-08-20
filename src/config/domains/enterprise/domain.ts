@@ -8,7 +8,7 @@ export const COMPANY_NAME = "Global Enterprise Inc.";
 
 // Product-specific colors for better visual distinction
 // Standard product codes used throughout the application
-export const PRODUCT_CODES = ['sap', 'salesforce', 'ms365', 'analytics', 'projects', 'fieldops'] as const;
+export const PRODUCT_CODES = ['sap', 'salesforce', 'ms365', 'analytics', 'servicenow', 'monitoring'] as const;
 export type ProductCode = typeof PRODUCT_CODES[number];
 
 export const PRODUCT_COLORS = {
@@ -16,8 +16,8 @@ export const PRODUCT_COLORS = {
   'salesforce': '#00A1E0',  // Salesforce Blue - CRM
   'ms365': '#0078D4',       // Microsoft Blue - Collaboration
   'analytics': '#8B5CF6',   // Purple - Custom Analytics
-  'projects': '#10B981',    // Green - Custom Projects
-  'fieldops': '#F59E0B',    // Orange - Custom Field Ops
+  'servicenow': '#10B981',  // Green - ServiceNow (Customer Support)
+  'monitoring': '#F59E0B',  // Orange - Infrastructure Monitoring (Datadog/New Relic)
   'n/a': '#999'            // Gray - Not applicable
 };
 
@@ -47,17 +47,17 @@ export const PRODUCTS = {
     abbreviation: 'ANLYT',
     type: 'custom'
   },
-  'projects': {
-    name: 'Project Hub',
-    description: 'Custom Project Management and Resource Planning',
-    abbreviation: 'PROJ',
-    type: 'custom'
+  'servicenow': {
+    name: 'ServiceNow',
+    description: 'IT Service Management & Customer Support Platform',
+    abbreviation: 'SNOW',
+    type: 'packaged'
   },
-  'fieldops': {
-    name: 'Field Operations',
-    description: 'Custom Mobile App for Field Service Management',
-    abbreviation: 'FIELD',
-    type: 'custom'
+  'monitoring': {
+    name: 'Infrastructure Monitoring',
+    description: 'Observability & Monitoring (Datadog/New Relic)',
+    abbreviation: 'MON',
+    type: 'packaged'
   }
 };
 
@@ -77,11 +77,13 @@ export const DOMAIN_CAPABILITIES = [
   'Supply Chain Management',
   'Human Resources',
   'Business Intelligence',
-  'Project Management',
-  'Field Service',
+  'IT Service Management',
+  'Customer Support',
+  'Infrastructure Monitoring',
+  'Application Performance Management',
   'Document Collaboration',
   'Workflow Automation',
-  'Mobile Operations'
+  'Incident Management'
 ];
 
 // Industry focus areas
@@ -96,11 +98,14 @@ export const INDUSTRY_VERTICALS = [
 
 // Domain-specific synonyms
 export const DOMAIN_SYNONYMS = {
-  'customer': ['client', 'account', 'prospect', 'lead', 'contact'],
+  'customer': ['client', 'account', 'prospect', 'lead', 'contact', 'user'],
   'order': ['purchase order', 'sales order', 'transaction', 'deal'],
   'employee': ['staff', 'resource', 'worker', 'user', 'team member'],
   'report': ['dashboard', 'analytics', 'metrics', 'KPI', 'insight'],
-  'project': ['initiative', 'program', 'engagement', 'assignment'],
+  'ticket': ['incident', 'request', 'issue', 'case', 'problem'],
+  'monitor': ['observe', 'track', 'watch', 'measure', 'detect'],
+  'alert': ['alarm', 'notification', 'warning', 'event'],
+  'performance': ['speed', 'latency', 'response time', 'throughput'],
   'finance': ['accounting', 'financial', 'fiscal', 'monetary', 'budget']
 };
 
