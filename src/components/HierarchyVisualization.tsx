@@ -31,6 +31,8 @@ interface HierarchyVisualizationProps {
   showWorkflows?: boolean; // Show cross-product workflow nodes
   recentActions?: any[]; // Recent actions for fallback resolution
   domainConfig?: any; // Domain-specific configuration
+  isFullScreen?: boolean; // Full-screen mode state
+  onToggleFullScreen?: () => void; // Full-screen toggle callback
 }
 
 interface NodePosition {
@@ -52,6 +54,8 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
   showWorkflows = false, // Default to not showing workflows
   recentActions = [],
   domainConfig,
+  isFullScreen = false,
+  onToggleFullScreen,
 }) => {
   // Get domain-specific values or fallback to imported defaults
   const FUNCTIONAL_NODES = domainConfig?.FUNCTIONAL_NODES || require('../config').FUNCTIONAL_NODES;
@@ -1276,7 +1280,11 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
       borderRadius: 12,
       padding: 20,
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      minHeight: 0
     }}>
       {/* Search button at top left */}
       <button
@@ -1445,7 +1453,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
             border: '1px solid #ddd',
             background: 'white',
             cursor: 'pointer',
-            fontSize: 24,
+            fontSize: 20,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1453,7 +1461,7 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           }}
           title="Reset View"
         >
-          ⟲
+          ⚃
         </button>
         <button
           onClick={handleZoomOut}
@@ -1474,20 +1482,47 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
         >
           −
         </button>
+        {/* Full-screen Toggle */}
+        {onToggleFullScreen && (
+          <button
+            onClick={onToggleFullScreen}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              border: '1px solid #ddd',
+              background: isFullScreen ? '#ef4444' : 'white',
+              cursor: 'pointer',
+              fontSize: 18,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              color: isFullScreen ? 'white' : '#333'
+            }}
+            title={isFullScreen ? 'Exit full-screen (Esc)' : 'Enter full-screen (F)'}
+          >
+            {isFullScreen ? '⤢' : '⛶'}
+          </button>
+        )}
       </div>
 
       {/* Main visualization */}
-      <svg
-        ref={svgRef}
-        width="100%"
-        height="600"
-        viewBox={`0 0 ${graphBounds.width} ${graphBounds.height}`}
-        style={{ 
-          width: '100%', 
-          height: '100%',
-          cursor: 'grab'
-        }}
-      >
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${graphBounds.width} ${graphBounds.height}`}
+          style={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%', 
+            height: '100%',
+            cursor: 'grab'
+          }}
+        >
         {/* Transform group for zoom and pan */}
         <g transform={transform.toString()}>
           {/* Level labels inside SVG - positioned between node rows */}
@@ -1586,7 +1621,8 @@ const HierarchyVisualization: React.FC<HierarchyVisualizationProps> = ({
           {/* Render nodes on top */}
           <g>{Object.keys(nodePositions).map((nodeId: string) => renderNode(nodeId))}</g>
         </g>
-      </svg>
+        </svg>
+      </div>
 
 
     </div>

@@ -32,12 +32,35 @@ const QueryDisambiguationSection: React.FC = () => {
   const [graphStateVersion, setGraphStateVersion] = useState<number>(0);
   const [generatedQuery, setGeneratedQuery] = useState<GeneratedQuery | null>(null);
   const [lastTrackedQuery, setLastTrackedQuery] = useState<string | undefined>();
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
   // Clear selected recent action when graph state changes
   useEffect(() => {
     setSelectedRecentAction(null);
     setGraphStateVersion(prev => prev + 1);
   }, [showRationalized, showWorkflows]);
+
+  // Add keyboard shortcut for full-screen toggle (F key or Escape to exit)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // F key to toggle full-screen (both lowercase and uppercase)
+      if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        // Don't trigger if user is typing in an input
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+        
+        e.preventDefault(); // Prevent any default 'f' key behavior
+        setIsFullScreen(prev => !prev);
+      }
+      // Escape to exit full-screen
+      else if (e.key === 'Escape' && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isFullScreen]);
 
   // Set initial context based on domain
   useEffect(() => {
@@ -316,10 +339,11 @@ const QueryDisambiguationSection: React.FC = () => {
       display: 'flex', 
       flexDirection: 'column',
       height: UI_LAYOUT.MAIN_CONTENT_HEIGHT,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative'
     }}>
-      {/* User Context Bar */}
-      {currentContext && currentContextId && (
+      {/* User Context Bar - hide in full-screen mode */}
+      {!isFullScreen && currentContext && currentContextId && (
         <UserContextBar
           context={currentContext}
           availableContexts={SAMPLE_CONTEXTS}
@@ -338,66 +362,83 @@ const QueryDisambiguationSection: React.FC = () => {
       {/* Main Content */}
       <div style={{ 
         display: 'flex', 
-        gap: UI_LAYOUT.MAIN_CONTENT_GAP, 
+        gap: isFullScreen ? 0 : UI_LAYOUT.MAIN_CONTENT_GAP, 
         flex: 1,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minHeight: 0
       }}>
-        {/* Query Examples Panel */}
-        <QueryExamples
-          queries={USER_QUERIES}
-          selectedQuery={selectedQuery}
-          onQuerySelect={handleQuerySelect}
-          generatedQuery={generatedQuery}
-          onGeneratedQuerySelect={handleGeneratedQuerySelect}
-          showRationalized={showRationalized}
-        />
+        {/* Query Examples Panel - hide in full-screen mode */}
+        {!isFullScreen && (
+          <QueryExamples
+            queries={USER_QUERIES}
+            selectedQuery={selectedQuery}
+            onQuerySelect={handleQuerySelect}
+            generatedQuery={generatedQuery}
+            onGeneratedQuerySelect={handleGeneratedQuerySelect}
+            showRationalized={showRationalized}
+          />
+        )}
 
-        {/* Hierarchy Visualization */}
-        <HierarchyVisualization
-          selectedQuery={selectedQuery}
-          entryNode={selectedQueryData?.entryNode}
-          resolution={showContext ? contextualResolution : baseResolution}
-          userContext={currentContext || undefined}
-          showContext={showContext}
-          expansionMode={expansionMode}
-          showOverlaps={showOverlaps}
-          showRationalized={showRationalized}
-          showWorkflows={showWorkflows}
-          recentActions={selectedRecentAction ? [selectedRecentAction] : []}
-          domainConfig={domainConfig}
-        />
+        {/* Hierarchy Visualization - expand to full width in full-screen mode */}
+        <div style={{ 
+          flex: 1,
+          width: isFullScreen ? '100%' : 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          height: '100%'
+        }}>
+          <HierarchyVisualization
+            selectedQuery={selectedQuery}
+            entryNode={selectedQueryData?.entryNode}
+            resolution={showContext ? contextualResolution : baseResolution}
+            userContext={currentContext || undefined}
+            showContext={showContext}
+            expansionMode={expansionMode}
+            showOverlaps={showOverlaps}
+            showRationalized={showRationalized}
+            showWorkflows={showWorkflows}
+            recentActions={selectedRecentAction ? [selectedRecentAction] : []}
+            domainConfig={domainConfig}
+            isFullScreen={isFullScreen}
+            onToggleFullScreen={() => setIsFullScreen(!isFullScreen)}
+          />
+        </div>
 
-        {/* Resolution Comparison Panel */}
-        <ResolutionComparison
-          baseResolution={baseResolution}
-          contextualResolution={contextualResolution}
-          userContext={currentContext || undefined}
-          showContext={showContext}
-          selectedQueryText={selectedQueryData?.text}
-          generatedQuery={generatedQuery && selectedQuery === generatedQuery.id ? generatedQuery : null}
-          recentActions={
-            // Combine all recent actions from all personas for the query history
-            Object.values(recentActionsByPersona)
-              .flat()
-              .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-              .slice(0, 5)
-          }
-          onClearRecentQuerys={() => {
-            // Clear all recent actions for all personas
-            setRecentActionsByPersona({});
-          }}
-          onSelectedRecentQueryChange={(selectedAction) => {
-            // Pass the selected recent action to hierarchy visualization
-            setSelectedRecentAction(selectedAction);
-          }}
-          graphStateVersion={graphStateVersion}
-          currentToggles={{
-            showRationalized: showRationalized,
-            showWorkflows: showWorkflows
-          }}
-          nodes={domainConfig?.FUNCTIONAL_NODES}
-        />
+        {/* Resolution Comparison Panel - hide in full-screen mode */}
+        {!isFullScreen && (
+          <ResolutionComparison
+            baseResolution={baseResolution}
+            contextualResolution={contextualResolution}
+            userContext={currentContext || undefined}
+            showContext={showContext}
+            selectedQueryText={selectedQueryData?.text}
+            generatedQuery={generatedQuery && selectedQuery === generatedQuery.id ? generatedQuery : null}
+            recentActions={
+              // Combine all recent actions from all personas for the query history
+              Object.values(recentActionsByPersona)
+                .flat()
+                .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+                .slice(0, 5)
+            }
+            onClearRecentQuerys={() => {
+              // Clear all recent actions for all personas
+              setRecentActionsByPersona({});
+            }}
+            onSelectedRecentQueryChange={(selectedAction) => {
+              // Pass the selected recent action to hierarchy visualization
+              setSelectedRecentAction(selectedAction);
+            }}
+            graphStateVersion={graphStateVersion}
+            currentToggles={{
+              showRationalized: showRationalized,
+              showWorkflows: showWorkflows
+            }}
+            nodes={domainConfig?.FUNCTIONAL_NODES}
+          />
+        )}
       </div>
+
 
       {/* Control Buttons */}
       <div style={{
